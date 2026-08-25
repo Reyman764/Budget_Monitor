@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Tailwind v4: opt into class-based dark mode (default is OS-preference-only) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Smooth, non-jarring theme transitions when the toggle is used */
+body,
+input,
+select,
+button {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
