@@ -3,25 +3,273 @@
 /* Tailwind v4: opt into class-based dark mode (default is OS-preference-only) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-body {
-  margin: 0;
-  min-height: 100vh;
+/* ---------------------------------------------------------------------------
+   Design tokens — "Quiet Nordic"
+   Cool paper canvas, sage as the single interactive accent, moss for money in
+   and clay for money out. Every value flips between themes here so components
+   can just say `bg-surface text-ink` and stay correct in both.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  --c-canvas: #f6f7f5;
+  --c-surface: #ffffff;
+  --c-sunken: #eef1ee;
+  --c-line: #e6eae6;
+  --c-line-strong: #d2d9d3;
+
+  --c-ink: #14181a;
+  --c-ink-soft: #4c5551;
+  --c-ink-mute: #77837d;
+
+  /* sage — primary interactive */
+  --c-sage: #4a6b58;
+  --c-sage-hover: #3b5546;
+  --c-sage-soft: #e7ede8;
+  --c-sage-ring: #7a9585;
+  --c-on-sage: #ffffff;
+
+  /* moss — money in */
+  --c-moss: #3e7a56;
+  --c-moss-soft: #e4efe8;
+  --c-moss-mark: #55966f;
+
+  /* clay — money out */
+  --c-clay: #9a5842;
+  --c-clay-soft: #f6e9e3;
+  --c-clay-mark: #b06e51;
+
+  /* honey — caution */
+  --c-honey: #8a6a22;
+  --c-honey-soft: #f6efdc;
+
+  --sh-card: 0 1px 2px rgb(20 24 22 / 0.03), 0 14px 34px -22px rgb(20 24 22 / 0.16);
+  --sh-lift: 0 2px 4px rgb(20 24 22 / 0.05), 0 22px 48px -24px rgb(20 24 22 / 0.22);
+  --sh-pop: 0 10px 40px -12px rgb(20 24 22 / 0.28);
 }
 
-#root {
-  min-height: 100vh;
+.dark {
+  color-scheme: dark;
+
+  --c-canvas: #101312;
+  --c-surface: #181c1a;
+  --c-sunken: #1f2422;
+  --c-line: #272d2a;
+  --c-line-strong: #363e3a;
+
+  --c-ink: #e9eeea;
+  --c-ink-soft: #a9b4ae;
+  --c-ink-mute: #7b8681;
+
+  --c-sage: #8fb39d;
+  --c-sage-hover: #a8c6b5;
+  --c-sage-soft: #1d2a23;
+  --c-sage-ring: #5b7f6b;
+  --c-on-sage: #0e1412;
+
+  --c-moss: #5cb183;
+  --c-moss-soft: #16281f;
+  --c-moss-mark: #5cb183;
+
+  --c-clay: #d08a6b;
+  --c-clay-soft: #291d18;
+  --c-clay-mark: #d08a6b;
+
+  --c-honey: #d9b063;
+  --c-honey-soft: #282217;
+
+  --sh-card: none;
+  --sh-lift: 0 18px 40px -28px rgb(0 0 0 / 0.9);
+  --sh-pop: 0 24px 60px -18px rgb(0 0 0 / 0.75);
 }
 
-/* Smooth, non-jarring theme transitions when the toggle is used */
-body,
-input,
-select,
-button {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+@theme inline {
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-sunken: var(--c-sunken);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+
+  --color-ink: var(--c-ink);
+  --color-ink-soft: var(--c-ink-soft);
+  --color-ink-mute: var(--c-ink-mute);
+
+  --color-sage: var(--c-sage);
+  --color-sage-hover: var(--c-sage-hover);
+  --color-sage-soft: var(--c-sage-soft);
+  --color-sage-ring: var(--c-sage-ring);
+  --color-on-sage: var(--c-on-sage);
+
+  --color-moss: var(--c-moss);
+  --color-moss-soft: var(--c-moss-soft);
+  --color-moss-mark: var(--c-moss-mark);
+
+  --color-clay: var(--c-clay);
+  --color-clay-soft: var(--c-clay-soft);
+  --color-clay-mark: var(--c-clay-mark);
+
+  --color-honey: var(--c-honey);
+  --color-honey-soft: var(--c-honey-soft);
+
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --shadow-card: var(--sh-card);
+  --shadow-lift: var(--sh-lift);
+  --shadow-pop: var(--sh-pop);
+
+  --radius-card: 1.25rem;
+  --radius-hero: 1.75rem;
+  --radius-field: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--c-canvas);
+    color: var(--c-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* Bricolage is the voice; Inter is the workhorse. Display sizes get tighter
+     tracking because Bricolage sets wide by default. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  /* Money, dates and codes must not jitter as digits change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  ::selection {
+    background: var(--c-sage-soft);
+    color: var(--c-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-sage-ring);
+    outline-offset: 2px;
+  }
+
+  /* Native pickers and scrollbars follow the theme via color-scheme above,
+     but the calendar glyph needs a nudge to stay legible on dark fields. */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+  }
+}
+
+@layer components {
+  /* One card treatment, used everywhere. Light mode carries a soft shadow and
+     a near-invisible hairline; dark mode drops the shadow (invisible anyway)
+     and lets the hairline do the separating. */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--sh-card);
+  }
+
+  /* Small caps eyebrow used above page and section titles. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-ink-mute);
+  }
+}
+
+@layer utilities {
+  /* A single orchestrated page-load reveal, staggered by --rise-delay. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .rise {
+    animation: rise 0.55s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+    animation-delay: var(--rise-delay, 0ms);
+  }
+
+  /* Hide scrollbars on the horizontal nav / chart scrollers without losing the
+     ability to scroll. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media print {
   .no-print {
     display: none !important;
+  }
+
+  /* Exported PDFs are always on white paper, whatever the on-screen theme. */
+  :root,
+  .dark {
+    --c-canvas: #ffffff;
+    --c-surface: #ffffff;
+    --c-sunken: #f4f4f2;
+    --c-line: #dcdfdc;
+    --c-ink: #14181a;
+    --c-ink-soft: #4c5551;
+    --c-ink-mute: #6b7671;
+    --c-moss: #3e7a56;
+    --c-clay: #9a5842;
+    --c-sage: #4a6b58;
+    --sh-card: none;
+  }
+
+  .card {
+    break-inside: avoid;
   }
 }

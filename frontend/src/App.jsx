@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import Loader from './components/ui/Loader';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 
@@ -16,11 +17,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 
-const PageFallback = () => (
-  <div className="flex items-center justify-center min-h-screen text-gray-600 dark:bg-slate-900 dark:text-slate-300">
-    Loading...
-  </div>
-);
+const PageFallback = () => <Loader full />;
 
 function AppRoutes() {
   const { user, loading } = useAuth();

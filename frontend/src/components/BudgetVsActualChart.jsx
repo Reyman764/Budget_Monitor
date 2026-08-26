@@ -1,11 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useTheme } from '../context/ThemeContext';
+import ChartCard from './ChartCard';
+import { MoneyTooltip, useChartTheme } from '../utils/chartTheme';
 
 export default function BudgetVsActualChart({ budgets, currency = 'NPR' }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const gridColor = isDark ? '#334155' : '#e5e7eb';
-  const tickColor = isDark ? '#94a3b8' : '#6b7280';
+  const theme = useChartTheme();
 
   const data = budgets.map((b) => ({
     category: b.category,
@@ -14,32 +12,31 @@ export default function BudgetVsActualChart({ budgets, currency = 'NPR' }) {
   }));
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-      <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">Budget vs. Actual</h2>
-      {data.length === 0 ? (
-        <p className="text-gray-500 dark:text-slate-400">
-          No budget limits set for this month yet — set one in Settings.
-        </p>
-      ) : (
-        <ResponsiveContainer width="100%" height={Math.max(260, data.length * 60)}>
-          <BarChart data={data} layout="vertical" margin={{ left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
-            <XAxis type="number" tick={{ fill: tickColor, fontSize: 12 }} />
-            <YAxis type="category" dataKey="category" width={90} tick={{ fill: tickColor, fontSize: 13 }} />
-            <Tooltip
-              formatter={(value) => `${currency} ${value.toFixed(2)}`}
-              contentStyle={
-                isDark
-                  ? { backgroundColor: '#1e293b', border: '1px solid #334155', color: '#f1f5f9' }
-                  : undefined
-              }
-            />
-            <Legend wrapperStyle={isDark ? { color: '#cbd5e1' } : undefined} />
-            <Bar dataKey="Budgeted" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-            <Bar dataKey="Spent" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
+    <ChartCard
+      title="Planned against actual"
+      description="Each category's limit next to what you spent"
+      isEmpty={data.length === 0}
+      emptyTitle="No limits set for this month"
+      emptyMessage="Set a limit per category in settings and this comparison fills in."
+    >
+      <ResponsiveContainer width="100%" height={Math.max(240, data.length * 62)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 12, left: 0, bottom: 0 }} barGap={2}>
+          {/* Vertical rules only: on a horizontal bar chart they're the scale. */}
+          <CartesianGrid stroke={theme.palette.grid} strokeDasharray="2 6" horizontal={false} />
+          <XAxis type="number" {...theme.axis} tickFormatter={theme.tickFormatter} />
+          <YAxis
+            type="category"
+            dataKey="category"
+            width={96}
+            {...theme.axis}
+            tick={{ fill: theme.palette.tick, fontSize: 13 }}
+          />
+          <Tooltip content={<MoneyTooltip currency={currency} />} cursor={theme.cursor} />
+          <Legend {...theme.legend} />
+          <Bar dataKey="Budgeted" fill={theme.palette.budgeted} radius={[0, 5, 5, 0]} barSize={11} />
+          <Bar dataKey="Spent" fill={theme.palette.spent} radius={[0, 5, 5, 0]} barSize={11} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
   );
 }

@@ -1,38 +1,36 @@
-const monthLabel = (month) => {
-  const [year, m] = month.split('-');
-  return new Date(Number(year), Number(m) - 1, 1).toLocaleDateString(undefined, {
-    month: 'short',
-    year: 'numeric'
-  });
-};
+import { SectionCard } from './ui/Card';
+import EmptyState from './ui/EmptyState';
+import { ExpenseIcon, IncomeIcon, ReviewIcon } from './icons';
+import { money, monthLabel } from '../utils/format';
 
 export default function MonthComparison({ current, previous, currency = 'NPR' }) {
   if (!current || !previous) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-        <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">Month over Month</h2>
-        <p className="text-gray-500 dark:text-slate-400">Not enough data yet to compare months.</p>
-      </div>
+      <SectionCard title="Against last month">
+        <EmptyState icon={<ReviewIcon />} title="Nothing to compare yet" className="py-8">
+          Once there are two months of history, the change in each figure shows up here.
+        </EmptyState>
+      </SectionCard>
     );
   }
 
   const rows = [
     {
-      label: 'Income',
+      label: 'Money in',
       prev: previous.totalIncome,
       curr: current.totalIncome,
       diff: current.totalIncome - previous.totalIncome,
       goodIsUp: true
     },
     {
-      label: 'Expenses',
+      label: 'Money out',
       prev: previous.totalExpense,
       curr: current.totalExpense,
       diff: current.totalExpense - previous.totalExpense,
       goodIsUp: false
     },
     {
-      label: 'Net Balance',
+      label: 'Left over',
       prev: previous.netBalance,
       curr: current.netBalance,
       diff: current.netBalance - previous.netBalance,
@@ -41,36 +39,45 @@ export default function MonthComparison({ current, previous, currency = 'NPR' })
   ];
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-      <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">
-        {monthLabel(current.month)} vs {monthLabel(previous.month)}
-      </h2>
-      <div className="space-y-3">
-        {rows.map((row) => {
-          const improved = row.goodIsUp ? row.diff >= 0 : row.diff <= 0;
-          return (
-            <div
-              key={row.label}
-              className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 dark:border-slate-700"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{row.label}</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500">
-                  {currency} {row.prev.toFixed(2)} → {currency} {row.curr.toFixed(2)}
-                </p>
-              </div>
-              <p
-                className={`text-sm font-bold ${
-                  improved ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`}
-              >
-                {row.diff >= 0 ? '+' : ''}
-                {currency} {Math.abs(row.diff).toFixed(2)}
+    <SectionCard
+      title="Against last month"
+      description={`${monthLabel(current.month, { short: true })} compared with ${monthLabel(
+        previous.month,
+        { short: true }
+      )}`}
+      bodyClassName="divide-y divide-line"
+    >
+      {rows.map((row) => {
+        // Whether a change is good depends on the row: spending less is an
+        // improvement, earning less is not.
+        const improved = row.goodIsUp ? row.diff >= 0 : row.diff <= 0;
+        const flat = Math.round(row.diff) === 0;
+        const Arrow = row.diff >= 0 ? ExpenseIcon : IncomeIcon;
+
+        return (
+          <div key={row.label} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+            <div className="min-w-0">
+              <p className="text-[0.9375rem] font-medium text-ink">{row.label}</p>
+              <p className="tnum mt-0.5 text-[0.8125rem] text-ink-mute">
+                {money(row.prev, currency, { decimals: false })}
+                <span className="mx-1.5 text-ink-mute">→</span>
+                <span className="font-medium text-ink-soft">
+                  {money(row.curr, currency, { decimals: false })}
+                </span>
               </p>
             </div>
-          );
-        })}
-      </div>
-    </div>
+
+            <p
+              className={`tnum inline-flex shrink-0 items-center gap-1.5 text-[0.9375rem] font-semibold ${
+                flat ? 'text-ink-mute' : improved ? 'text-moss' : 'text-clay'
+              }`}
+            >
+              {!flat && <Arrow className="h-4 w-4" />}
+              {flat ? 'No change' : money(Math.abs(row.diff), currency, { decimals: false })}
+            </p>
+          </div>
+        );
+      })}
+    </SectionCard>
   );
 }

@@ -1,15 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../hooks/useHousehold';
+import AuthLayout from '../components/AuthLayout';
+import Button from '../components/ui/Button';
+import Callout from '../components/ui/Callout';
+import Loader from '../components/ui/Loader';
+import { Field, Input } from '../components/ui/Field';
+import { ArrowRightIcon, CheckIcon, CopyIcon, HouseholdIcon, PlusIcon } from '../components/icons';
 
-const inputClass =
-  'w-full px-4 py-2 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+const MODES = [
+  { value: 'create', label: 'Start one', Icon: PlusIcon },
+  { value: 'join', label: 'Join one', Icon: HouseholdIcon }
+];
 
 export default function HouseholdSetup() {
   const [mode, setMode] = useState('create');
   const [householdName, setHouseholdName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [createdInviteCode, setCreatedInviteCode] = useState('');
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { household, loading: householdLoading, createHousehold, joinHousehold } = useHousehold();
@@ -22,11 +31,7 @@ export default function HouseholdSetup() {
   }, [household, householdLoading, createdInviteCode, navigate]);
 
   if (householdLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <p className="text-gray-600 dark:text-slate-300">Loading...</p>
-      </div>
-    );
+    return <Loader full label="Checking your household" />;
   }
 
   const handleCreate = async (e) => {
@@ -59,118 +64,136 @@ export default function HouseholdSetup() {
     }
   };
 
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(createdInviteCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard is blocked outside secure contexts — the code is on screen anyway.
+    }
+  };
+
   if (createdInviteCode) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 px-4 dark:from-slate-900 dark:to-slate-950">
-        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center dark:bg-slate-800">
-          <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-slate-100">
-            Household Created!
-          </h1>
-          <p className="text-gray-600 mb-4 dark:text-slate-400">
-            Share this invite code with your partner:
+      <AuthLayout
+        title="Your household is ready"
+        description="Send this code to the person you budget with. It's the only thing they need to land in the same ledger."
+      >
+        <div className="text-center">
+          <p className="eyebrow">Invite code</p>
+          <p className="tnum font-display mt-3 text-[2.25rem] font-semibold tracking-[0.2em] text-ink sm:text-[2.5rem]">
+            {createdInviteCode}
           </p>
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6 dark:bg-blue-950 dark:border-blue-800">
-            <p className="text-3xl font-bold tracking-widest text-blue-600 dark:text-blue-300">
-              {createdInviteCode}
-            </p>
+
+          <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+            <Button variant="secondary" size="lg" onClick={copy} full>
+              {copied ? (
+                <CheckIcon className="h-4 w-4 text-moss" />
+              ) : (
+                <CopyIcon className="h-4 w-4" />
+              )}
+              {copied ? 'Copied' : 'Copy code'}
+            </Button>
+            <Button variant="primary" size="lg" onClick={() => navigate('/dashboard')} full>
+              Go to overview
+              <ArrowRightIcon className="h-4 w-4" />
+            </Button>
           </div>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition"
-          >
-            Go to Dashboard
-          </button>
+
+          <p className="mt-5 text-[0.8125rem] leading-relaxed text-ink-mute">
+            You can find this code again any time on your overview.
+          </p>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 px-4 dark:from-slate-900 dark:to-slate-950">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md dark:bg-slate-800">
-        <h1 className="text-2xl font-bold mb-2 text-center text-gray-800 dark:text-slate-100">
-          Set Up Your Household
-        </h1>
-        <p className="text-gray-500 text-center mb-6 text-sm dark:text-slate-400">
-          Create a new household or join your partner with an invite code
-        </p>
+    <AuthLayout
+      title="Set up your household"
+      description="A household is the shared space your transactions, bills, and goals live in."
+    >
+      {/* Two ways in, so it's two buttons rather than a dropdown. */}
+      <div
+        className="grid grid-cols-2 gap-1 rounded-field bg-sunken p-1"
+        role="group"
+        aria-label="Household setup mode"
+      >
+        {MODES.map(({ value, label, Icon }) => {
+          const isActive = mode === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setMode(value);
+                setError('');
+              }}
+              aria-pressed={isActive}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-[0.55rem] text-[0.8125rem] transition-colors duration-150 ${
+                isActive
+                  ? 'bg-surface font-semibold text-sage shadow-card'
+                  : 'font-medium text-ink-soft hover:text-ink'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="flex mb-6 border border-gray-200 rounded-lg overflow-hidden dark:border-slate-700">
-          <button
-            type="button"
-            onClick={() => setMode('create')}
-            className={`flex-1 py-2 text-sm font-medium ${
-              mode === 'create'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-600 dark:bg-slate-800 dark:text-slate-300'
-            }`}
+      {error && <Callout tone="error" className="mt-4">{error}</Callout>}
+
+      {mode === 'create' ? (
+        <form onSubmit={handleCreate} className="mt-5 space-y-4" noValidate>
+          <Field
+            label="Household name"
+            htmlFor="householdName"
+            hint="Just for you — you can change it in settings."
           >
-            Create New
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('join')}
-            className={`flex-1 py-2 text-sm font-medium ${
-              mode === 'join'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-600 dark:bg-slate-800 dark:text-slate-300'
-            }`}
-          >
-            Join Existing
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 dark:bg-red-950 dark:border-red-900 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        {mode === 'create' ? (
-          <form onSubmit={handleCreate}>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-slate-300">
-              Household Name
-            </label>
-            <input
+            <Input
+              id="householdName"
               type="text"
-              placeholder="e.g. Our Home Budget"
+              placeholder="Our home budget"
               value={householdName}
               onChange={(e) => setHouseholdName(e.target.value)}
-              className={inputClass}
               required
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Household'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleJoin}>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-slate-300">
-              Invite Code
-            </label>
-            <input
+          </Field>
+
+          <Button type="submit" variant="primary" size="lg" full disabled={loading}>
+            {loading ? 'Creating…' : 'Create household'}
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={handleJoin} className="mt-5 space-y-4" noValidate>
+          <Field
+            label="Invite code"
+            htmlFor="inviteCode"
+            hint="Eight characters, from whoever set up the household."
+          >
+            <Input
+              id="inviteCode"
               type="text"
-              placeholder="Enter 8-character code"
+              placeholder="ABCD1234"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              className={`${inputClass} uppercase tracking-widest`}
+              className="tnum text-center font-semibold tracking-[0.28em] uppercase"
               required
               maxLength={8}
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck="false"
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-            >
-              {loading ? 'Joining...' : 'Join Household'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
+          </Field>
+
+          <Button type="submit" variant="primary" size="lg" full disabled={loading}>
+            {loading ? 'Joining…' : 'Join household'}
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   );
 }

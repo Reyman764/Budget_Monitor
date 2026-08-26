@@ -41,6 +41,16 @@ export const useHousehold = () => {
     return data;
   };
 
+  // Replaces the whole { expense, income } category list for the household.
+  // Callers compute the new list locally (after an add or delete) and pass
+  // the full result here.
+  const updateCategories = async (categories) => {
+    if (!household) return;
+    const { data } = await api.put(`/household/${household.id}/categories`, { categories });
+    setHousehold(data.household);
+    return data.household;
+  };
+
   useEffect(() => {
     fetchHousehold();
   }, [fetchHousehold]);
@@ -51,6 +61,7 @@ export const useHousehold = () => {
     error,
     fetchHousehold,
     createHousehold,
-    joinHousehold
+    joinHousehold,
+    updateCategories
   };
 };

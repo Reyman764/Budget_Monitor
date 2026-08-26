@@ -28,6 +28,13 @@ module.exports = (sequelize, DataTypes) => {
       inviteCode: {
         type: DataTypes.STRING,
         unique: true
+      },
+      // { expense: [...], income: [...] } — the household's own editable
+      // category list (add/delete from the UI). Null means "not customized
+      // yet"; the frontend falls back to sensible defaults in that case.
+      categories: {
+        type: DataTypes.JSONB,
+        allowNull: true
       }
     },
     {

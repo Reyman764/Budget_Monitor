@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const inputClass =
-  'w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+import AuthLayout from '../components/AuthLayout';
+import Button from '../components/ui/Button';
+import Callout from '../components/ui/Callout';
+import { Field, Input } from '../components/ui/Field';
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -50,75 +51,80 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 px-4 dark:from-slate-900 dark:to-slate-950">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md dark:bg-slate-800">
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-slate-100">
-          Budget Tracker
-        </h1>
+    <AuthLayout
+      title="Start a shared ledger"
+      description="One account for you, one household for the two of you. Takes a minute."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-medium text-sage underline decoration-sage/30 underline-offset-2 hover:decoration-sage"
+          >
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && <Callout tone="error">{error}</Callout>}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6 dark:bg-red-950 dark:border-red-900 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <input
+        <Field label="Your name" htmlFor="name">
+          <Input
+            id="name"
             type="text"
             name="name"
-            placeholder="Full Name"
+            autoComplete="name"
+            placeholder="Aarav Sharma"
             value={formData.name}
             onChange={handleChange}
-            className={inputClass}
             required
           />
+        </Field>
 
-          <input
+        <Field label="Email" htmlFor="email">
+          <Input
+            id="email"
             type="email"
             name="email"
-            placeholder="Email"
+            autoComplete="email"
+            placeholder="you@example.com"
             value={formData.email}
             onChange={handleChange}
-            className={inputClass}
             required
           />
+        </Field>
 
-          <input
+        <Field label="Password" htmlFor="password" hint="At least 6 characters.">
+          <Input
+            id="password"
             type="password"
             name="password"
-            placeholder="Password"
+            autoComplete="new-password"
+            placeholder="••••••••"
             value={formData.password}
             onChange={handleChange}
-            className={inputClass}
             required
           />
+        </Field>
 
-          <input
+        <Field label="Confirm password" htmlFor="confirmPassword">
+          <Input
+            id="confirmPassword"
             type="password"
             name="confirmPassword"
-            placeholder="Confirm Password"
+            autoComplete="new-password"
+            placeholder="••••••••"
             value={formData.confirmPassword}
             onChange={handleChange}
-            className={inputClass}
             required
           />
+        </Field>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-          >
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
-        </form>
-
-        <p className="text-center mt-4 text-gray-600 dark:text-slate-400">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-500 hover:underline dark:text-blue-400">
-            Login
-          </Link>
-        </p>
-      </div>
-    </div>
+        <Button type="submit" variant="primary" size="lg" full disabled={loading} className="mt-2">
+          {loading ? 'Creating account…' : 'Create account'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

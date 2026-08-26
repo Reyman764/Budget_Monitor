@@ -1,15 +1,40 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Modal from './Modal';
-import { CATEGORIES } from './TransactionForm';
+import CategoryDropdown from './CategoryDropdown';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
+import EmptyState from './ui/EmptyState';
+import { Field, Input, Select } from './ui/Field';
+import { EditIcon, ExpenseIcon, IncomeIcon, RecurringIcon, ReviewIcon, TrashIcon } from './icons';
+import { dateLabel, money, ordinal } from '../utils/format';
+import { DEFAULT_CATEGORIES } from '../utils/categories';
 
-const inputClass =
-  'w-full px-3 py-2 border border-gray-300 rounded-lg dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 text-sm';
-const labelClass = 'block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300';
+const dayKey = (date) => new Date(date).toISOString().slice(0, 10);
 
-export default function TransactionList({ transactions, onUpdate, onDelete, currency = 'NPR' }) {
+export default function TransactionList({
+  transactions,
+  onUpdate,
+  onDelete,
+  currency = 'NPR',
+  categories = DEFAULT_CATEGORIES,
+  onAddCategory,
+  onDeleteCategory
+}) {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Grouping by day gives the list a spine: you read a date once, then the
+  // entries under it, instead of re-reading the same date on every row.
+  const days = useMemo(() => {
+    const map = new Map();
+    for (const tx of transactions) {
+      const key = dayKey(tx.date);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(tx);
+    }
+    return [...map.entries()];
+  }, [transactions]);
 
   const openEdit = (tx) => {
     setEditingTransaction(tx);
@@ -29,17 +54,9 @@ export default function TransactionList({ transactions, onUpdate, onDelete, curr
     setFormData((prev) => ({
       ...prev,
       [name]: inputType === 'checkbox' ? checked : value,
-      ...(name === 'type' && { category: CATEGORIES[value][0] })
+      ...(name === 'type' && { category: (categories[value] || [])[0] || '' })
     }));
   };
-
-  // Free-text category field suggestions: built-in defaults for the selected
-  // type, plus any custom category already used elsewhere in this list.
-  const categorySuggestions = useMemo(() => {
-    const type = formData.type || 'expense';
-    const used = (transactions || []).filter((t) => t.type === type).map((t) => t.category).filter(Boolean);
-    return Array.from(new Set([...(CATEGORIES[type] || []), ...used]));
-  }, [transactions, formData.type]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -67,123 +84,216 @@ export default function TransactionList({ transactions, onUpdate, onDelete, curr
 
   if (transactions.length === 0) {
     return (
-      <p className="text-center py-6 text-gray-400 dark:text-slate-500 text-sm">
-        No transactions found
-      </p>
+      <EmptyState icon={<ReviewIcon />} title="Nothing logged yet">
+        Add a transaction and it'll show up here, newest first.
+      </EmptyState>
     );
   }
 
   return (
     <>
-      <div className="space-y-2">
-        {transactions.map((tx) => (
-          <div
-            key={tx.id}
-            className="flex flex-wrap justify-between items-start gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-700/40 transition"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium text-gray-900 dark:text-slate-100 truncate">
-                  {tx.description || tx.category}
-                </p>
-                {tx.isRecurring && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full dark:bg-purple-900/50 dark:text-purple-300">
-                    🔁 recurring{tx.recurringDay ? ` · day ${tx.recurringDay}` : ''}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                {new Date(tx.date).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })}
-                {' · '}{tx.category}
-                {tx.User?.name && <span className="ml-1">· by {tx.User.name}</span>}
-              </p>
-            </div>
+      <div className="space-y-6">
+        {days.map(([day, items]) => {
+          const dayNet = items.reduce(
+            (sum, tx) => sum + (tx.type === 'income' ? 1 : -1) * parseFloat(tx.amount),
+            0
+          );
 
-            <div className="flex items-center gap-3 shrink-0">
-              <p className={`text-base font-bold ${
-                tx.type === 'income'
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
-              }`}>
-                {tx.type === 'income' ? '+' : '−'}{currency} {parseFloat(tx.amount).toFixed(2)}
-              </p>
-              <button
-                onClick={() => openEdit(tx)}
-                className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(tx.id)}
-                className="text-xs text-red-400 hover:text-red-600 dark:text-red-400"
-              >
-                Delete
-              </button>
+          return (
+            <div key={day}>
+              <div className="mb-1.5 flex items-baseline justify-between gap-3 border-b border-line pb-1.5">
+                <p className="eyebrow">{dateLabel(day)}</p>
+                <p
+                  className={`tnum text-[0.75rem] font-semibold ${
+                    dayNet < 0 ? 'text-clay' : 'text-moss'
+                  }`}
+                >
+                  {money(dayNet, currency, { signed: true, decimals: false })}
+                </p>
+              </div>
+
+              <ul>
+                {items.map((tx) => {
+                  const isIncome = tx.type === 'income';
+                  const amount = parseFloat(tx.amount);
+
+                  return (
+                    <li
+                      key={tx.id}
+                      className="group -mx-2 flex items-center gap-3.5 rounded-xl px-2 py-2.5 transition-colors hover:bg-sunken"
+                    >
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          isIncome ? 'bg-moss-soft text-moss' : 'bg-clay-soft text-clay'
+                        }`}
+                      >
+                        {isIncome ? (
+                          <IncomeIcon className="h-[1.15rem] w-[1.15rem]" />
+                        ) : (
+                          <ExpenseIcon className="h-[1.15rem] w-[1.15rem]" />
+                        )}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="truncate text-[0.9375rem] font-medium text-ink">
+                            {tx.description || tx.category}
+                          </p>
+                          {tx.isRecurring && (
+                            <Badge tone="sage" icon={<RecurringIcon className="h-3 w-3" />}>
+                              {tx.recurringDay ? `Monthly · ${ordinal(tx.recurringDay)}` : 'Monthly'}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-[0.75rem] text-ink-mute">
+                          {tx.category}
+                          {tx.User?.name && ` · ${tx.User.name}`}
+                        </p>
+                      </div>
+
+                      <p
+                        className={`tnum shrink-0 text-[0.9375rem] font-semibold ${
+                          isIncome ? 'text-moss' : 'text-ink'
+                        }`}
+                      >
+                        {money(isIncome ? amount : -amount, currency, {
+                          signed: true,
+                          decimals: 'auto'
+                        })}
+                      </p>
+
+                      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          className="h-8 w-8"
+                          onClick={() => openEdit(tx)}
+                          aria-label={`Edit ${tx.description || tx.category}`}
+                          title="Edit"
+                        >
+                          <EditIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          iconOnly
+                          className="h-8 w-8"
+                          onClick={() => handleDelete(tx.id)}
+                          aria-label={`Delete ${tx.description || tx.category}`}
+                          title="Delete"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {editingTransaction && (
-        <Modal title="Edit Transaction" onClose={() => setEditingTransaction(null)}>
-          <form onSubmit={handleUpdate} className="space-y-3">
-            <div>
-              <label className={labelClass}>Type</label>
-              <select name="type" value={formData.type} onChange={handleChange} className={inputClass}>
-                <option value="expense">💸 Expense</option>
-                <option value="income">💰 Income</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Amount</label>
-              <input type="number" name="amount" value={formData.amount} onChange={handleChange}
-                step="0.01" min="0.01" className={inputClass} required />
-            </div>
-            <div>
-              <label className={labelClass}>Category</label>
-              <input
+        <Modal title="Edit transaction" onClose={() => setEditingTransaction(null)}>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <Field label="Type" htmlFor="edit-type">
+              <Select id="edit-type" name="type" value={formData.type} onChange={handleChange}>
+                <option value="expense">Money out</option>
+                <option value="income">Money in</option>
+              </Select>
+            </Field>
+
+            <Field label="Amount" htmlFor="edit-amount" required>
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
+                  {currency}
+                </span>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0.01"
+                  required
+                  className="tnum pl-14"
+                />
+              </div>
+            </Field>
+
+            <CategoryDropdown
+              value={formData.category}
+              onChange={(cat) => setFormData((prev) => ({ ...prev, category: cat }))}
+              categories={categories[formData.type] || []}
+              onAddCategory={(name) => onAddCategory(formData.type, name)}
+              onDeleteCategory={(name) => onDeleteCategory(formData.type, name)}
+            />
+
+            <Field label="Description" htmlFor="edit-description">
+              <Input
+                id="edit-description"
                 type="text"
-                name="category"
-                list="category-suggestions-edit"
-                value={formData.category}
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                className={inputClass}
-                required
+                placeholder="What was it for?"
               />
-              <datalist id="category-suggestions-edit">
-                {categorySuggestions.map((cat) => (
-                  <option key={cat} value={cat} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label className={labelClass}>Description</label>
-              <input type="text" name="description" value={formData.description}
-                onChange={handleChange} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Date</label>
-              <input type="date" name="date" value={formData.date}
-                onChange={handleChange} className={inputClass} required />
-            </div>
+            </Field>
+
+            <Field label="Date" htmlFor="edit-date" required>
+              <Input
+                id="edit-date"
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+                className="tnum"
+              />
+            </Field>
+
             {formData.type === 'expense' && (
-              <div className="rounded-lg border border-gray-200 p-3 dark:border-slate-700">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" name="isRecurring" checked={formData.isRecurring}
-                    onChange={handleChange} className="h-4 w-4 accent-blue-500" />
-                  <span className="text-sm text-gray-700 dark:text-slate-300">🔁 Recurring monthly bill</span>
+              <div className="rounded-field border border-line px-3.5 py-3">
+                <label className="flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    name="isRecurring"
+                    checked={formData.isRecurring}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded accent-sage"
+                  />
+                  <RecurringIcon className="h-4 w-4 text-ink-mute" />
+                  <span className="text-[0.875rem] font-medium text-ink-soft">
+                    Repeats every month
+                  </span>
                 </label>
                 {formData.isRecurring && (
-                  <input type="number" name="recurringDay" value={formData.recurringDay}
-                    onChange={handleChange} placeholder="Due day (1–31)" min="1" max="31"
-                    className={`${inputClass} mt-2`} />
+                  <Input
+                    type="number"
+                    name="recurringDay"
+                    value={formData.recurringDay}
+                    onChange={handleChange}
+                    placeholder="Due day (1–31)"
+                    min="1"
+                    max="31"
+                    aria-label="Due day of month"
+                    className="tnum mt-3"
+                  />
                 )}
               </div>
             )}
-            <button type="submit" disabled={loading}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50">
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="secondary" full onClick={() => setEditingTransaction(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" full disabled={loading}>
+                {loading ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
           </form>
         </Modal>
       )}

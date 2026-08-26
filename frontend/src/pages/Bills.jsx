@@ -1,9 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../hooks/useHousehold';
 import { useTransactions } from '../hooks/useTransactions';
-import ThemeToggle from '../components/ThemeToggle';
+import AppShell from '../components/AppShell';
 import Modal from '../components/Modal';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Callout from '../components/ui/Callout';
+import EmptyState from '../components/ui/EmptyState';
+import Loader from '../components/ui/Loader';
+import Meter from '../components/ui/Meter';
+import PageHeader from '../components/ui/PageHeader';
+import Stat from '../components/ui/Stat';
+import { Card, SectionCard } from '../components/ui/Card';
+import { Field, Input, Select } from '../components/ui/Field';
+import {
+  BillsIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  PlusIcon,
+  RecurringIcon,
+  TrashIcon
+} from '../components/icons';
+import { money, monthLabel, ordinal } from '../utils/format';
+import { DEFAULT_CATEGORIES } from '../utils/categories';
 import api from '../utils/api';
 
 export default function Bills() {
@@ -11,6 +31,7 @@ export default function Bills() {
   const navigate = useNavigate();
   const householdId = household?.id || null;
   const currency = household?.currency || 'NPR';
+  const expenseCategories = household?.categories?.expense || DEFAULT_CATEGORIES.expense;
 
   const { transactions, loading, fetchTransactions, payBill, deleteTransaction } = useTransactions(householdId);
 
@@ -19,6 +40,7 @@ export default function Bills() {
   // Transactions paid in the current month (to mark bills as paid)
   const [paidThisMonth, setPaidThisMonth] = useState([]);
   const [payingId, setPayingId] = useState(null);
+  const [payError, setPayError] = useState('');
 
   // Add-bill modal state
   const [showAdd, setShowAdd] = useState(false);
@@ -67,6 +89,7 @@ export default function Bills() {
 
   const handlePay = async (bill) => {
     setPayingId(bill.id);
+    setPayError('');
     try {
       await payBill(bill.id);
       // Refresh paid list
@@ -75,7 +98,7 @@ export default function Bills() {
       });
       setPaidThisMonth(data.transactions || []);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to log payment');
+      setPayError(err.response?.data?.error || 'Failed to log that payment. Try again.');
     } finally {
       setPayingId(null);
     }
@@ -112,204 +135,234 @@ export default function Bills() {
 
   const totalMonthly = bills.reduce((sum, b) => sum + parseFloat(b.amount), 0);
   const paidCount = bills.filter(isPaidThisMonth).length;
+  const outstanding = bills
+    .filter((b) => !isPaidThisMonth(b))
+    .reduce((sum, b) => sum + parseFloat(b.amount), 0);
+  const paidPct = bills.length ? (paidCount / bills.length) * 100 : 0;
+
+  // Bills read as a calendar, so they're ordered by the day they fall due —
+  // undated ones last.
+  const ordered = [...bills].sort(
+    (a, b) => (a.recurringDay || 99) - (b.recurringDay || 99)
+  );
 
   if (householdLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <p className="text-gray-500 dark:text-slate-400">Loading...</p>
-      </div>
-    );
+    return <Loader full label="Loading your household" />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <nav className="bg-white shadow-sm p-4 dark:bg-slate-800">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              ← Dashboard
-            </Link>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">Bill Tracker</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <button
-              onClick={() => setShowAdd(true)}
-              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition"
-            >
-              + Add Bill
-            </button>
-          </div>
-        </div>
-      </nav>
+    <AppShell household={household}>
+      <PageHeader
+        eyebrow="Recurring"
+        title="Bills"
+        description="The payments that come round every month. Mark one paid and it lands in this month's ledger."
+        actions={
+          <Button variant="primary" onClick={() => setShowAdd(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Add bill
+          </Button>
+        }
+      />
 
-      <div className="mx-auto max-w-3xl p-4">
-        {/* Summary strip */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800 text-center">
-            <p className="text-xs text-gray-500 dark:text-slate-400">Total Bills</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{bills.length}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800 text-center">
-            <p className="text-xs text-gray-500 dark:text-slate-400">Paid this month</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{paidCount}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800 text-center">
-            <p className="text-xs text-gray-500 dark:text-slate-400">Monthly total</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-slate-100">
-              {currency} {totalMonthly.toFixed(0)}
-            </p>
-          </div>
-        </div>
+      <div className="mt-8 space-y-6">
+        {payError && <Callout tone="error">{payError}</Callout>}
 
-        {loading ? (
-          <p className="text-center text-gray-400 dark:text-slate-500">Loading bills...</p>
-        ) : bills.length === 0 ? (
-          <div className="rounded-lg bg-white p-10 shadow text-center dark:bg-slate-800">
-            <p className="text-4xl mb-3">🧾</p>
-            <p className="text-gray-600 dark:text-slate-400 mb-4">
-              No recurring bills yet. Add your first one to track monthly payments.
-            </p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="rounded-lg bg-blue-500 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-600"
-            >
-              + Add First Bill
-            </button>
+        <Card className="rise">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            <Stat label="Bills" value={bills.length} />
+            <Stat
+              label={`Paid in ${monthLabel(currentMonth, { short: true })}`}
+              value={`${paidCount} of ${bills.length}`}
+              tone={bills.length && paidCount === bills.length ? 'moss' : 'ink'}
+            />
+            <Stat label="Still to pay" value={money(outstanding, currency, { decimals: false })} tone="clay" />
+            <Stat label="Every month" value={money(totalMonthly, currency, { decimals: false })} />
           </div>
-        ) : (
-          <div className="space-y-3">
-            {bills.map((bill) => {
-              const paid = isPaidThisMonth(bill);
-              return (
-                <div
-                  key={bill.id}
-                  className={`flex items-center justify-between gap-3 rounded-lg border p-4 bg-white shadow-sm dark:bg-slate-800 transition ${
-                    paid
-                      ? 'border-green-200 dark:border-green-900'
-                      : 'border-gray-200 dark:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-2xl" aria-hidden>
-                      {paid ? '✅' : '🔁'}
+
+          {bills.length > 0 && (
+            <div className="mt-6 border-t border-line pt-5">
+              <Meter percent={paidPct} tone={paidCount === bills.length ? 'moss' : 'sage'} />
+              <p className="mt-2.5 text-[0.8125rem] text-ink-mute">
+                {paidCount === bills.length
+                  ? 'Everything for this month is settled.'
+                  : `${bills.length - paidCount} left to settle this month.`}
+              </p>
+            </div>
+          )}
+        </Card>
+
+        <SectionCard
+          title="Every bill"
+          description={ordered.length ? 'Ordered by the day they fall due' : undefined}
+          className="rise"
+          bodyClassName="-mx-2 sm:-mx-3"
+        >
+          {loading ? (
+            <Loader label="Loading bills" />
+          ) : ordered.length === 0 ? (
+            <EmptyState
+              icon={<BillsIcon className="h-5 w-5" />}
+              title="No recurring bills yet"
+              action={
+                <Button variant="primary" onClick={() => setShowAdd(true)}>
+                  <PlusIcon className="h-4 w-4" />
+                  Add your first bill
+                </Button>
+              }
+            >
+              Add rent, internet, or anything else that repeats, and you can log each month's
+              payment in one tap.
+            </EmptyState>
+          ) : (
+            <ul>
+              {ordered.map((bill) => {
+                const paid = isPaidThisMonth(bill);
+                return (
+                  <li
+                    key={bill.id}
+                    className="group flex items-center gap-3 rounded-[1rem] px-3 py-3 transition-colors duration-150 hover:bg-sunken sm:gap-4"
+                  >
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        paid ? 'bg-moss-soft text-moss' : 'bg-sunken text-ink-mute'
+                      }`}
+                    >
+                      {paid ? (
+                        <CheckCircleIcon className="h-[1.15rem] w-[1.15rem]" />
+                      ) : (
+                        <RecurringIcon className="h-[1.15rem] w-[1.15rem]" />
+                      )}
                     </span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-slate-100 truncate">
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[0.9375rem] font-medium text-ink">
                         {bill.description || bill.category}
                       </p>
-                      <p className="text-xs text-gray-400 dark:text-slate-500">
+                      <p className="mt-0.5 truncate text-[0.8125rem] text-ink-mute">
                         {bill.category}
-                        {bill.recurringDay ? ` · due on the ${bill.recurringDay}${ordinal(bill.recurringDay)}` : ''}
+                        {bill.recurringDay ? ` · due the ${ordinal(bill.recurringDay)}` : ''}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-bold text-red-600 dark:text-red-400">
-                      {currency} {parseFloat(bill.amount).toFixed(2)}
-                    </span>
+                    <p className="tnum shrink-0 text-[0.9375rem] font-semibold text-ink">
+                      {money(bill.amount, currency, { decimals: false })}
+                    </p>
 
-                    {paid ? (
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                        Paid
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handlePay(bill)}
-                        disabled={payingId === bill.id}
-                        className="rounded-lg bg-green-500 px-3 py-1 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-50 transition"
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {paid ? (
+                        <Badge tone="moss">
+                          <CheckIcon className="h-3.5 w-3.5" />
+                          Paid
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="soft"
+                          size="sm"
+                          onClick={() => handlePay(bill)}
+                          disabled={payingId === bill.id}
+                        >
+                          {payingId === bill.id ? 'Logging…' : 'Mark paid'}
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        onClick={() => handleDelete(bill.id)}
+                        aria-label={`Remove ${bill.description || bill.category}`}
+                        className="text-ink-mute opacity-0 transition-opacity duration-150 hover:text-clay group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-100"
                       >
-                        {payingId === bill.id ? '...' : 'Mark paid'}
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDelete(bill.id)}
-                      className="text-xs text-red-400 hover:text-red-600 dark:text-red-400"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </SectionCard>
       </div>
 
       {showAdd && (
-        <Modal title="Add Recurring Bill" onClose={() => setShowAdd(false)}>
-          <form onSubmit={handleAddBill} className="space-y-3">
-            {addError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{addError}</p>
-            )}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">Description</label>
-              <input
+        <Modal
+          title="Add a recurring bill"
+          description="It won't be counted as spent until you mark it paid."
+          onClose={() => setShowAdd(false)}
+        >
+          <form onSubmit={handleAddBill} className="space-y-4" noValidate>
+            {addError && <Callout tone="error">{addError}</Callout>}
+
+            <Field label="What is it" htmlFor="bill-description">
+              <Input
+                id="bill-description"
                 type="text"
                 value={addForm.description}
                 onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
-                placeholder="e.g. Internet bill"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                placeholder="Internet"
                 required
               />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Amount" htmlFor="bill-amount">
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
+                    {currency}
+                  </span>
+                  <Input
+                    id="bill-amount"
+                    type="number"
+                    value={addForm.amount}
+                    onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0.01"
+                    className="tnum pl-14"
+                    required
+                  />
+                </div>
+              </Field>
+
+              <Field label="Due day" htmlFor="bill-day" hint="Optional">
+                <Input
+                  id="bill-day"
+                  type="number"
+                  value={addForm.recurringDay}
+                  onChange={(e) => setAddForm({ ...addForm, recurringDay: e.target.value })}
+                  placeholder="15"
+                  min="1"
+                  max="31"
+                  className="tnum"
+                />
+              </Field>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">Monthly Amount</label>
-              <input
-                type="number"
-                value={addForm.amount}
-                onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
-                min="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">Category</label>
-              <select
+
+            <Field label="Category" htmlFor="bill-category">
+              <Select
+                id="bill-category"
                 value={addForm.category}
                 onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               >
-                {['Bills', 'Food', 'Transport', 'Entertainment', 'Shopping', 'Health', 'Other'].map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                {expenseCategories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
-              </select>
+              </Select>
+            </Field>
+
+            <div className="flex gap-2.5 pt-1">
+              <Button variant="secondary" onClick={() => setShowAdd(false)} full>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={addLoading} full>
+                {addLoading ? 'Adding…' : 'Add bill'}
+              </Button>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
-                Due on day of month (optional)
-              </label>
-              <input
-                type="number"
-                value={addForm.recurringDay}
-                onChange={(e) => setAddForm({ ...addForm, recurringDay: e.target.value })}
-                placeholder="e.g. 15"
-                min="1"
-                max="31"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={addLoading}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50"
-            >
-              {addLoading ? 'Adding...' : 'Add Bill'}
-            </button>
           </form>
         </Modal>
       )}
-    </div>
+    </AppShell>
   );
-}
-
-function ordinal(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
 }

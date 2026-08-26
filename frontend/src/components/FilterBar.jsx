@@ -1,13 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
+import Button from './ui/Button';
+import { Card } from './ui/Card';
+import { Field, Input, Select } from './ui/Field';
+import { CloseIcon, SearchIcon } from './icons';
+import { DEFAULT_CATEGORIES } from '../utils/categories';
 
-const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Bills', 'Entertainment', 'Shopping', 'Health', 'Other'];
-const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Other'];
-const ALL_CATEGORIES = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES])].sort();
+/**
+ * The category list follows the type filter: pick "Income" and you only see
+ * income categories, because offering "Groceries" there can only produce an
+ * empty result. With no type chosen, both lists are merged.
+ */
+const categoryOptions = (categories, type) => {
+  if (type === 'income') return categories.income || [];
+  if (type === 'expense') return categories.expense || [];
+  return [...new Set([...(categories.expense || []), ...(categories.income || [])])].sort();
+};
 
-const selectClass =
-  'px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200';
-
-export default function FilterBar({ filters, onChange }) {
+export default function FilterBar({ filters, onChange, categories = DEFAULT_CATEGORIES }) {
   const [localSearch, setLocalSearch] = useState(filters.search || '');
   const debounceRef = useRef(null);
 
@@ -32,81 +41,80 @@ export default function FilterBar({ filters, onChange }) {
   const hasActiveFilters =
     filters.type || filters.category || filters.startDate || filters.endDate || filters.search;
 
+  const options = categoryOptions(categories, filters.type);
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      {/* Search */}
-      <div className="relative mb-3">
-        <svg
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-        </svg>
-        <input
+    <Card className="rise">
+      <div className="relative">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 h-[1.05rem] w-[1.05rem] -translate-y-1/2 text-ink-mute" />
+        <Input
           type="text"
-          placeholder="Search description or category…"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:placeholder-slate-500"
+          placeholder="Search descriptions and categories"
+          aria-label="Search transactions"
+          className="pl-11"
         />
         {localSearch && (
           <button
+            type="button"
             onClick={() => setLocalSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+            aria-label="Clear search"
+            className="absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-sunken hover:text-ink"
           >
-            ×
+            <CloseIcon className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Dropdowns + date pickers row */}
-      <div className="flex flex-wrap gap-2">
-        <select value={filters.type} onChange={(e) => set('type', e.target.value)} className={selectClass}>
-          <option value="">All types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-        </select>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label="Type">
+          <Select value={filters.type} onChange={(e) => set('type', e.target.value)}>
+            <option value="">Income and expenses</option>
+            <option value="income">Income only</option>
+            <option value="expense">Expenses only</option>
+          </Select>
+        </Field>
 
-        <select value={filters.category} onChange={(e) => set('category', e.target.value)} className={selectClass}>
-          <option value="">All categories</option>
-          {ALL_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <Field label="Category">
+          <Select value={filters.category} onChange={(e) => set('category', e.target.value)}>
+            <option value="">All categories</option>
+            {options.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 dark:text-slate-400">From</label>
-          <input
+        <Field label="From">
+          <Input
             type="date"
             value={filters.startDate}
             onChange={(e) => set('startDate', e.target.value)}
-            className={selectClass}
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 dark:text-slate-400">To</label>
-          <input
+        <Field label="To">
+          <Input
             type="date"
             value={filters.endDate}
             onChange={(e) => set('endDate', e.target.value)}
-            className={selectClass}
           />
-        </div>
-
-        {hasActiveFilters && (
-          <button
-            onClick={reset}
-            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-500 transition hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
-          >
-            <span>✕</span> Clear filters
-          </button>
-        )}
+        </Field>
       </div>
-    </div>
+
+      {hasActiveFilters && (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
+          <p className="text-[0.8125rem] text-ink-mute">
+            A date range here overrides the month above.
+          </p>
+          <Button variant="danger" size="sm" onClick={reset}>
+            <CloseIcon className="h-4 w-4" />
+            Clear filters
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }

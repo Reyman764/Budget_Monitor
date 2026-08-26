@@ -6,7 +6,12 @@ const router = express.Router();
 const { Op } = require('sequelize');
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+// "YYYY-MM" for a Date, read in local time. toISOString() would answer in UTC,
+// which lands in the previous month for anywhere east of Greenwich — the reason
+// the yearly trends chart used to be labelled a month behind.
+const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const currentMonth = () => monthKey(new Date());
 
 // Shared helper — checks the requesting user belongs to the given household.
 // Same pattern as transactions.js / reports.js.
@@ -258,7 +263,7 @@ router.get('/trends/:householdId', authMiddleware, async (req, res) => {
     });
 
     const byMonth = transactions.reduce((acc, t) => {
-      const key = new Date(t.date).toISOString().slice(0, 7);
+      const key = monthKey(new Date(t.date));
       if (!acc[key]) acc[key] = { income: 0, expense: 0 };
       acc[key][t.type] += parseFloat(t.amount);
       return acc;
@@ -270,7 +275,7 @@ router.get('/trends/:householdId', authMiddleware, async (req, res) => {
     const trends = [];
     for (let i = 0; i < monthCount; i++) {
       const d = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + i, 1);
-      const key = d.toISOString().slice(0, 7);
+      const key = monthKey(d);
       const entry = byMonth[key] || { income: 0, expense: 0 };
       trends.push({ month: key, income: entry.income, expense: entry.expense, net: entry.income - entry.expense });
     }

@@ -1,47 +1,42 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from 'recharts';
-import { useTheme } from '../context/ThemeContext';
+import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import ChartCard from './ChartCard';
+import { MoneyTooltip, useChartTheme } from '../utils/chartTheme';
+import { money } from '../utils/format';
 
 export default function IncomeExpenseChart({ income, expense, currency = 'NPR' }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const gridColor = isDark ? '#334155' : '#e5e7eb';
-  const tickColor = isDark ? '#94a3b8' : '#6b7280';
+  const theme = useChartTheme();
 
   const data = [
-    { name: 'Income', value: income },
-    { name: 'Expenses', value: expense }
+    { name: 'In', value: income, fill: theme.palette.income },
+    { name: 'Out', value: expense, fill: theme.palette.expense }
   ];
-  const barColors = ['#10b981', '#ef4444'];
+
+  const net = income - expense;
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-      <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">
-        Income vs Expenses
-      </h2>
-      {income === 0 && expense === 0 ? (
-        <p className="text-gray-500 dark:text-slate-400">No transactions to display</p>
-      ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={data} barSize={72}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: tickColor, fontSize: 13 }} />
-            <YAxis tick={{ fill: tickColor, fontSize: 12 }} />
-            <Tooltip
-              formatter={(value) => `${currency} ${value.toFixed(2)}`}
-              contentStyle={
-                isDark
-                  ? { backgroundColor: '#1e293b', border: '1px solid #334155', color: '#f1f5f9' }
-                  : undefined
-              }
-            />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={entry.name} fill={barColors[index]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-    </div>
+    <ChartCard
+      title="In and out"
+      description={`Net ${money(net, currency, { signed: true, decimals: false })}`}
+      isEmpty={income === 0 && expense === 0}
+      emptyMessage="Add a transaction to compare what came in against what went out."
+    >
+      <ResponsiveContainer width="100%" height={256}>
+        <BarChart data={data} barSize={76} margin={{ top: 8, right: 6, bottom: 0, left: -12 }}>
+          <CartesianGrid {...theme.grid} />
+          <XAxis
+            dataKey="name"
+            {...theme.axis}
+            tick={{ fill: theme.palette.tick, fontSize: 13, fontWeight: 500 }}
+          />
+          <YAxis {...theme.axis} tickFormatter={theme.tickFormatter} width={56} />
+          <Tooltip content={<MoneyTooltip currency={currency} />} cursor={theme.cursor} />
+          <Bar dataKey="value" name="Amount" radius={[10, 10, 4, 4]}>
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.fill} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
   );
 }

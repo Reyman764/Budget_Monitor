@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../hooks/useHousehold';
 import { useGoals } from '../hooks/useGoals';
-import ThemeToggle from '../components/ThemeToggle';
+import AppShell from '../components/AppShell';
 import Modal from '../components/Modal';
 import GoalsTracker from '../components/GoalsTracker';
+import Button from '../components/ui/Button';
+import Callout from '../components/ui/Callout';
+import Loader from '../components/ui/Loader';
+import Meter from '../components/ui/Meter';
+import PageHeader from '../components/ui/PageHeader';
+import Stat from '../components/ui/Stat';
+import { Card } from '../components/ui/Card';
+import { Field, Input } from '../components/ui/Field';
+import { PlusIcon } from '../components/icons';
+import { money } from '../utils/format';
 
 export default function Goals() {
   const { household, loading: householdLoading } = useHousehold();
@@ -50,110 +60,126 @@ export default function Goals() {
   };
 
   const totalSaved = goals.reduce((sum, g) => sum + parseFloat(g.currentAmount), 0);
+  const totalTarget = goals.reduce((sum, g) => sum + parseFloat(g.targetAmount), 0);
   const reachedCount = goals.filter((g) => parseFloat(g.currentAmount) >= parseFloat(g.targetAmount)).length;
+  const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
 
   if (householdLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <p className="text-gray-500 dark:text-slate-400">Loading...</p>
-      </div>
-    );
+    return <Loader full label="Loading your household" />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <nav className="bg-white shadow-sm p-4 dark:bg-slate-800">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              ← Dashboard
-            </Link>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">🎯 Savings Goals</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <button
-              onClick={() => setShowAdd(true)}
-              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 transition"
-            >
-              + Add Goal
-            </button>
-          </div>
-        </div>
-      </nav>
+    <AppShell household={household}>
+      <PageHeader
+        eyebrow="Saving towards"
+        title="Goals"
+        description="Money you're setting aside on purpose, and how close each one is."
+        actions={
+          <Button variant="primary" onClick={() => setShowAdd(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Add goal
+          </Button>
+        }
+      />
 
-      <div className="mx-auto max-w-3xl p-4">
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800 text-center">
-            <p className="text-xs text-gray-500 dark:text-slate-400">Total saved across goals</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-slate-100">
-              {currency} {totalSaved.toFixed(0)}
-            </p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800 text-center">
-            <p className="text-xs text-gray-500 dark:text-slate-400">Goals reached</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {reachedCount} / {goals.length}
-            </p>
-          </div>
-        </div>
+      <div className="mt-8 space-y-6">
+        {goals.length > 0 && (
+          <Card className="rise">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+              <Stat
+                label="Saved so far"
+                value={money(totalSaved, currency, { decimals: false })}
+                tone="moss"
+                size="lg"
+              />
+              <Stat label="Across all targets" value={money(totalTarget, currency, { decimals: false })} />
+              <Stat
+                label="Goals reached"
+                value={`${reachedCount} of ${goals.length}`}
+                tone={reachedCount === goals.length ? 'moss' : 'ink'}
+              />
+            </div>
+
+            <div className="mt-6 border-t border-line pt-5">
+              <Meter percent={overallPct} tone="moss" />
+              <p className="mt-2.5 text-[0.8125rem] text-ink-mute">
+                {Math.round(overallPct)}% of everything you're saving towards is funded.
+              </p>
+            </div>
+          </Card>
+        )}
 
         {loading ? (
-          <p className="text-center text-gray-400 dark:text-slate-500">Loading goals...</p>
+          <Loader label="Loading goals" />
         ) : (
-          <GoalsTracker goals={goals} currency={currency} onAddFunds={handleAddFunds} onDelete={handleDelete} />
+          <GoalsTracker
+            goals={goals}
+            currency={currency}
+            onAddFunds={handleAddFunds}
+            onDelete={handleDelete}
+          />
         )}
       </div>
 
       {showAdd && (
-        <Modal title="Add Savings Goal" onClose={() => setShowAdd(false)}>
-          <form onSubmit={handleAddGoal} className="space-y-3">
-            {addError && <p className="text-sm text-red-600 dark:text-red-400">{addError}</p>}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">Goal name</label>
-              <input
+        <Modal
+          title="Add a savings goal"
+          description="Name it and set a target. You can add to it any time."
+          onClose={() => setShowAdd(false)}
+        >
+          <form onSubmit={handleAddGoal} className="space-y-4" noValidate>
+            {addError && <Callout tone="error">{addError}</Callout>}
+
+            <Field label="What are you saving for" htmlFor="goal-name">
+              <Input
+                id="goal-name"
                 type="text"
                 value={addForm.goalName}
                 onChange={(e) => setAddForm({ ...addForm, goalName: e.target.value })}
-                placeholder="e.g. Emergency fund"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                placeholder="Emergency fund"
                 required
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">Target amount</label>
-              <input
-                type="number"
-                value={addForm.targetAmount}
-                onChange={(e) => setAddForm({ ...addForm, targetAmount: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
-                min="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300">
-                Target date (optional)
-              </label>
-              <input
+            </Field>
+
+            <Field label="Target amount" htmlFor="goal-target">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
+                  {currency}
+                </span>
+                <Input
+                  id="goal-target"
+                  type="number"
+                  value={addForm.targetAmount}
+                  onChange={(e) => setAddForm({ ...addForm, targetAmount: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                  className="tnum pl-14"
+                  required
+                />
+              </div>
+            </Field>
+
+            <Field label="Target date" htmlFor="goal-deadline" hint="Optional — adds a countdown.">
+              <Input
+                id="goal-deadline"
                 type="date"
                 value={addForm.deadline}
                 onChange={(e) => setAddForm({ ...addForm, deadline: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               />
+            </Field>
+
+            <div className="flex gap-2.5 pt-1">
+              <Button variant="secondary" onClick={() => setShowAdd(false)} full>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={addLoading} full>
+                {addLoading ? 'Adding…' : 'Add goal'}
+              </Button>
             </div>
-            <button
-              type="submit"
-              disabled={addLoading}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50"
-            >
-              {addLoading ? 'Adding...' : 'Add Goal'}
-            </button>
           </form>
         </Modal>
       )}
-    </div>
+    </AppShell>
   );
 }

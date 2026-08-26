@@ -10,8 +10,11 @@ import {
   ReferenceLine,
   ResponsiveContainer
 } from 'recharts';
-import { useTheme } from '../context/ThemeContext';
+import ChartCard from './ChartCard';
+import Loader from './ui/Loader';
 import { useBudget } from '../hooks/useBudget';
+import { MoneyTooltip, useChartTheme } from '../utils/chartTheme';
+import { monthLabel } from '../utils/format';
 
 const monthTick = (month) => {
   const [year, m] = month.split('-');
@@ -19,24 +22,12 @@ const monthTick = (month) => {
   return `${label} '${year.slice(2)}`;
 };
 
-const fullMonthLabel = (month) => {
-  const [year, m] = month.split('-');
-  return new Date(Number(year), Number(m) - 1, 1).toLocaleDateString(undefined, {
-    month: 'long',
-    year: 'numeric'
-  });
-};
-
 // Every month side by side as grouped bars (income / expense / net), rather than
 // the rolling 12-month line in YearlyTrends. Self-contained — fetches its own
 // full-history data via useBudget so it doesn't depend on what other charts on
 // the page have already loaded.
 export default function MonthlyBarChart({ householdId, currency = 'NPR' }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const gridColor = isDark ? '#334155' : '#e5e7eb';
-  const tickColor = isDark ? '#94a3b8' : '#6b7280';
-
+  const theme = useChartTheme();
   const { trends, loading, fetchTrends } = useBudget(householdId);
 
   useEffect(() => {
@@ -47,45 +38,50 @@ export default function MonthlyBarChart({ householdId, currency = 'NPR' }) {
   const hasData = data.some((d) => d.income !== 0 || d.expense !== 0);
   // Fixed per-month width so bars stay readable instead of being squeezed to fit —
   // the container scrolls horizontally once there are more than a handful of months.
-  const chartWidth = Math.max(600, data.length * 70);
+  const chartWidth = Math.max(600, data.length * 76);
+
+  if (loading && data.length === 0) {
+    return (
+      <ChartCard title="Month by month" description="Every month you've recorded">
+        <Loader label="Loading your history" />
+      </ChartCard>
+    );
+  }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-      <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">
-        All Months — Side by Side
-      </h2>
-      {loading && data.length === 0 ? (
-        <p className="text-gray-500 dark:text-slate-400">Loading...</p>
-      ) : !hasData ? (
-        <p className="text-gray-500 dark:text-slate-400">No transactions yet.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <ResponsiveContainer width={chartWidth} height={340} minWidth={chartWidth}>
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-              <XAxis dataKey="label" tick={{ fill: tickColor, fontSize: 12 }} interval={0} />
-              <YAxis tick={{ fill: tickColor, fontSize: 12 }} />
-              <ReferenceLine y={0} stroke={gridColor} />
-              <Tooltip
-                formatter={(value) => `${currency} ${value.toFixed(2)}`}
-                labelFormatter={(label, payload) => {
-                  const month = payload?.[0]?.payload?.month;
-                  return month ? fullMonthLabel(month) : label;
-                }}
-                contentStyle={
-                  isDark
-                    ? { backgroundColor: '#1e293b', border: '1px solid #334155', color: '#f1f5f9' }
-                    : undefined
-                }
-              />
-              <Legend wrapperStyle={isDark ? { color: '#cbd5e1' } : undefined} />
-              <Bar dataKey="income" name="Income" fill="#10b981" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="net" name="Net" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </div>
+    <ChartCard
+      title="Month by month"
+      description={
+        hasData ? `Every month you've recorded · ${data.length} so far` : "Every month you've recorded"
+      }
+      isEmpty={!hasData}
+      emptyMessage="Log a transaction and each month will line up here for comparison."
+    >
+      <div className="scrollbar-none -mx-1 overflow-x-auto px-1">
+        <ResponsiveContainer width={chartWidth} height={340} minWidth={chartWidth}>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }} barGap={3}>
+            <CartesianGrid {...theme.grid} />
+            <XAxis dataKey="label" {...theme.axis} interval={0} />
+            <YAxis {...theme.axis} tickFormatter={theme.tickFormatter} width={56} />
+            <ReferenceLine y={0} stroke={theme.palette.axis} />
+            <Tooltip
+              content={
+                <MoneyTooltip
+                  currency={currency}
+                  labelFormatter={(label, payload) =>
+                    payload?.[0]?.payload?.month ? monthLabel(payload[0].payload.month) : label
+                  }
+                />
+              }
+              cursor={theme.cursor}
+            />
+            <Legend {...theme.legend} />
+            <Bar dataKey="income" name="In" fill={theme.palette.income} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="expense" name="Out" fill={theme.palette.expense} radius={[5, 5, 0, 0]} />
+            <Bar dataKey="net" name="Left over" fill={theme.palette.net} radius={[5, 5, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
   );
 }

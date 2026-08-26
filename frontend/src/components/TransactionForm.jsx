@@ -1,13 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
-
-const CATEGORIES = {
-  expense: ['Food', 'Transport', 'Bills', 'Entertainment', 'Shopping', 'Health', 'Other'],
-  income: ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Saving', 'Other']
-};
-
-const inputClass =
-  'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-blue-500 text-sm';
-const labelClass = 'block text-sm font-medium mb-1 text-gray-700 dark:text-slate-300';
+import { useState, useEffect } from 'react';
+import CategoryDropdown from './CategoryDropdown';
+import Button from './ui/Button';
+import Callout from './ui/Callout';
+import { Card } from './ui/Card';
+import { Field, Input } from './ui/Field';
+import { ExpenseIcon, IncomeIcon, PlusIcon, RecurringIcon } from './icons';
+import { DEFAULT_CATEGORIES } from '../utils/categories';
 
 // Pick a sensible default date for the transaction being added.
 // If the dashboard is showing the real current month, default to today.
@@ -29,11 +27,24 @@ function getDefaultDate(viewMonth) {
   return `${viewMonth}-${String(day).padStart(2, '0')}`;
 }
 
-export default function TransactionForm({ onAdd, householdId, currentMonth, transactions }) {
+const TYPES = [
+  { value: 'expense', label: 'Money out', Icon: ExpenseIcon, active: 'text-clay' },
+  { value: 'income', label: 'Money in', Icon: IncomeIcon, active: 'text-moss' }
+];
+
+export default function TransactionForm({
+  onAdd,
+  householdId,
+  currentMonth,
+  currency = 'NPR',
+  categories = DEFAULT_CATEGORIES,
+  onAddCategory,
+  onDeleteCategory
+}) {
   const [formData, setFormData] = useState({
     type: 'expense',
     amount: '',
-    category: 'Other',
+    category: categories.expense?.[0] || '',
     description: '',
     date: getDefaultDate(currentMonth),
     isRecurring: false,
@@ -41,17 +52,6 @@ export default function TransactionForm({ onAdd, householdId, currentMonth, tran
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Category is a free-text field — this just powers the <datalist> suggestions:
-  // the built-in defaults for the selected type, plus any custom category the
-  // household has already typed in before (so it's easy to reuse, not required).
-  const categorySuggestions = useMemo(() => {
-    const used = (transactions || [])
-      .filter((t) => t.type === formData.type)
-      .map((t) => t.category)
-      .filter(Boolean);
-    return Array.from(new Set([...CATEGORIES[formData.type], ...used]));
-  }, [transactions, formData.type]);
 
   // Keep the date field in sync with whichever month is being viewed,
   // as long as the user hasn't already started filling out the form.
@@ -64,12 +64,31 @@ export default function TransactionForm({ onAdd, householdId, currentMonth, tran
     });
   }, [currentMonth]);
 
+  // If the selected category was deleted elsewhere, fall back to whatever's
+  // first in the current list so the field never points at nothing.
+  useEffect(() => {
+    const list = categories[formData.type] || [];
+    if (list.length && !list.includes(formData.category)) {
+      setFormData((prev) => ({ ...prev, category: list[0] }));
+    }
+  }, [categories, formData.type, formData.category]);
+
   const handleChange = (e) => {
     const { name, value, type: inputType, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: inputType === 'checkbox' ? checked : value,
-      ...(name === 'type' && { category: CATEGORIES[value][0] })
+      [name]: inputType === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Switching type swaps the category list too, so the selection can't be left
+  // pointing at a category that doesn't exist on the other side.
+  const setType = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      type: value,
+      category: (categories[value] || [])[0] || '',
+      ...(value === 'income' ? { isRecurring: false, recurringDay: '' } : {})
     }));
   };
 
@@ -91,7 +110,7 @@ export default function TransactionForm({ onAdd, householdId, currentMonth, tran
       setFormData({
         type: 'expense',
         amount: '',
-        category: 'Other',
+        category: categories.expense?.[0] || '',
         description: '',
         date: getDefaultDate(currentMonth),
         isRecurring: false,
@@ -105,127 +124,136 @@ export default function TransactionForm({ onAdd, householdId, currentMonth, tran
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 dark:bg-slate-800">
-      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-slate-100">Add Transaction</h2>
+    <Card>
+      <h2 className="font-display text-[1.0625rem] font-semibold text-ink">Add a transaction</h2>
+      <p className="mt-0.5 text-[0.8125rem] text-ink-mute">
+        It lands in whichever month the date falls in.
+      </p>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-4 text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
+        <Callout tone="error" className="mt-4">
           {error}
-        </div>
+        </Callout>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className={labelClass}>Type</label>
-          <select name="type" value={formData.type} onChange={handleChange} className={inputClass}>
-            <option value="expense">💸 Expense (Money Out)</option>
-            <option value="income">💰 Income (Money In)</option>
-          </select>
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        {/* A binary choice, so it's two buttons rather than a dropdown. */}
+        <div
+          className="grid grid-cols-2 gap-1 rounded-field bg-sunken p-1"
+          role="group"
+          aria-label="Transaction type"
+        >
+          {TYPES.map(({ value, label, Icon, active }) => {
+            const isActive = formData.type === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setType(value)}
+                aria-pressed={isActive}
+                className={`inline-flex h-9 items-center justify-center gap-2 rounded-[0.55rem] text-[0.8125rem] font-medium transition-colors duration-150 ${
+                  isActive
+                    ? `bg-surface font-semibold shadow-card ${active}`
+                    : 'text-ink-mute hover:text-ink'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        <div>
-          <label className={labelClass}>Amount</label>
-          <input
-            type="number"
-            name="amount"
-            value={formData.amount}
-            onChange={handleChange}
-            placeholder="0.00"
-            step="0.01"
-            min="0.01"
-            className={inputClass}
-            required
-          />
-        </div>
+        <Field label="Amount" htmlFor="tx-amount" required>
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
+              {currency}
+            </span>
+            <Input
+              id="tx-amount"
+              type="number"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0.01"
+              required
+              className="tnum pl-14"
+            />
+          </div>
+        </Field>
 
-        <div>
-          <label className={labelClass}>Category</label>
-          <input
-            type="text"
-            name="category"
-            list="category-suggestions-add"
-            value={formData.category}
-            onChange={handleChange}
-            placeholder="Pick a suggestion or type your own"
-            className={inputClass}
-            required
-          />
-          <datalist id="category-suggestions-add">
-            {categorySuggestions.map((cat) => (
-              <option key={cat} value={cat} />
-            ))}
-          </datalist>
-        </div>
+        <CategoryDropdown
+          value={formData.category}
+          onChange={(cat) => setFormData((prev) => ({ ...prev, category: cat }))}
+          categories={categories[formData.type] || []}
+          onAddCategory={(name) => onAddCategory(formData.type, name)}
+          onDeleteCategory={(name) => onDeleteCategory(formData.type, name)}
+        />
 
-        <div>
-          <label className={labelClass}>Description</label>
-          <input
+        <Field label="Description" htmlFor="tx-description">
+          <Input
+            id="tx-description"
             type="text"
             name="description"
             value={formData.description}
             onChange={handleChange}
-            placeholder="Optional details"
-            className={inputClass}
+            placeholder="What was it for?"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className={labelClass}>Date</label>
-          <input
+        <Field label="Date" htmlFor="tx-date" required>
+          <Input
+            id="tx-date"
             type="date"
             name="date"
             value={formData.date}
             onChange={handleChange}
-            className={inputClass}
             required
+            className="tnum"
           />
-        </div>
+        </Field>
 
         {/* Recurring bill toggle — only relevant for expenses */}
         {formData.type === 'expense' && (
-          <div className="rounded-lg border border-gray-200 p-3 dark:border-slate-700">
-            <label className="flex cursor-pointer items-center gap-2">
+          <div className="rounded-field border border-line px-3.5 py-3">
+            <label className="flex cursor-pointer items-center gap-2.5">
               <input
                 type="checkbox"
                 name="isRecurring"
                 checked={formData.isRecurring}
                 onChange={handleChange}
-                className="h-4 w-4 rounded accent-blue-500"
+                className="h-4 w-4 rounded accent-sage"
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                🔁 Recurring monthly bill
+              <RecurringIcon className="h-4 w-4 text-ink-mute" />
+              <span className="text-[0.875rem] font-medium text-ink-soft">
+                Repeats every month
               </span>
             </label>
             {formData.isRecurring && (
-              <div className="mt-2">
-                <label className="text-xs text-gray-500 dark:text-slate-400">
-                  Due on day of month (optional)
-                </label>
-                <input
+              <Field label="Due on day of month" htmlFor="tx-recurring-day" className="mt-3" hint="Optional — used to remind you on the Bills page.">
+                <Input
+                  id="tx-recurring-day"
                   type="number"
                   name="recurringDay"
                   value={formData.recurringDay}
                   onChange={handleChange}
-                  placeholder="e.g. 15"
+                  placeholder="15"
                   min="1"
                   max="31"
-                  className={`${inputClass} mt-1`}
+                  className="tnum"
                 />
-              </div>
+              </Field>
             )}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || !householdId}
-          className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-        >
-          {loading ? 'Adding...' : 'Add Transaction'}
-        </button>
+        <Button type="submit" variant="primary" full disabled={loading || !householdId}>
+          {!loading && <PlusIcon className="h-4 w-4" />}
+          {loading ? 'Adding…' : 'Add transaction'}
+        </Button>
       </form>
-    </div>
+    </Card>
   );
 }
-
-export { CATEGORIES };

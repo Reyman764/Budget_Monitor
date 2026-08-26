@@ -4,21 +4,29 @@ import { useAuth } from '../context/AuthContext';
 import { useHousehold } from '../hooks/useHousehold';
 import { useTransactions } from '../hooks/useTransactions';
 import { useBudget } from '../hooks/useBudget';
+import AppShell from '../components/AppShell';
+import BalanceHero from '../components/BalanceHero';
+import MonthPicker from '../components/MonthPicker';
+import InviteCode from '../components/InviteCode';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
-import SummaryCards from '../components/SummaryCards';
 import FilterBar from '../components/FilterBar';
 import CategoryChart from '../components/CategoryChart';
 import TrendChart from '../components/TrendChart';
-import IncomeExpenseChart from '../components/IncomeExpenseChart';
-import ThemeToggle from '../components/ThemeToggle';
 import BudgetAlerts from '../components/BudgetAlerts';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import Loader from '../components/ui/Loader';
+import PageHeader from '../components/ui/PageHeader';
+import { SectionCard } from '../components/ui/Card';
+import { ArrowRightIcon, FilterIcon } from '../components/icons';
+import { DEFAULT_CATEGORIES } from '../utils/categories';
 
 const DEFAULT_FILTERS = { type: '', category: '', startDate: '', endDate: '', search: '' };
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const { household, loading: householdLoading } = useHousehold();
+  const { user } = useAuth();
+  const { household, loading: householdLoading, updateCategories } = useHousehold();
   const navigate = useNavigate();
 
   // Month picker for the charts/summary (independent of the filter bar)
@@ -32,6 +40,26 @@ export default function Dashboard() {
   const { transactions, loading, fetchTransactions, addTransaction, updateTransaction, deleteTransaction, ensureCarryOver } =
     useTransactions(householdId);
   const { budgets, netWorth, fetchProgress, fetchNetWorth } = useBudget(householdId);
+
+  // The household's own editable category list, falling back to sensible
+  // defaults until it's loaded (or for a household that hasn't customized
+  // it yet).
+  const categories = household?.categories || DEFAULT_CATEGORIES;
+
+  const addCategory = async (type, name) => {
+    const current = categories[type] || [];
+    if (current.some((c) => c.toLowerCase() === name.toLowerCase())) return;
+    await updateCategories({ ...categories, [type]: [...current, name] });
+  };
+
+  const deleteCategory = async (type, name) => {
+    const current = categories[type] || [];
+    if (current.length <= 1) {
+      alert('You need at least one category in this list.');
+      return;
+    }
+    await updateCategories({ ...categories, [type]: current.filter((c) => c !== name) });
+  };
 
   useEffect(() => {
     if (!householdLoading && !household) navigate('/household-setup');
@@ -76,159 +104,117 @@ export default function Dashboard() {
   const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
   const balance = income - expense;
 
-  const handleLogout = () => { logout(); navigate('/login'); };
-
   const hasActiveFilters = Object.values(filters).some(Boolean);
 
   if (householdLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <p className="text-gray-600 dark:text-slate-300">Loading...</p>
-      </div>
-    );
+    return <Loader full label="Loading your household" />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <nav className="bg-white shadow-sm p-4 dark:bg-slate-800">
-        <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-2">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Budget Tracker</h1>
-            {household && (
-              <p className="text-sm text-gray-500 dark:text-slate-400">
-                {household.name} · {household.currency}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-4 flex-wrap">
-            <Link to="/bills" className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              🧾 Bills
-            </Link>
-            <Link to="/monthly-review" className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              📊 Monthly Review
-            </Link>
-            <Link to="/analytics" className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              📈 Analytics
-            </Link>
-            <Link to="/goals" className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              🎯 Goals
-            </Link>
-            <Link to="/settings" className="text-sm font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400">
-              ⚙️ Settings
-            </Link>
-            <p className="text-gray-600 dark:text-slate-300 hidden sm:block text-sm">
-              Hi, {user?.name}
-            </p>
-            <ThemeToggle />
-            <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700 font-medium">
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-6xl mx-auto p-4 space-y-6">
-
-        {/* Month picker + filter toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Overview</h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="month"
-              value={currentMonth}
-              onChange={(e) => setCurrentMonth(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-            />
-            <button
+    <AppShell household={household}>
+      <PageHeader
+        eyebrow={`Hi, ${user?.name?.split(' ')[0] || 'there'}`}
+        title="Overview"
+        actions={
+          <>
+            <MonthPicker value={currentMonth} onChange={setCurrentMonth} />
+            <Button
+              variant={hasActiveFilters ? 'soft' : 'secondary'}
               onClick={() => setShowFilters((v) => !v)}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-medium transition ${
-                hasActiveFilters
-                  ? 'border-blue-400 bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700'
-                  : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800'
-              }`}
+              aria-expanded={showFilters}
             >
-              🔍 Filters{hasActiveFilters ? ' •' : ''}
-            </button>
-          </div>
-        </div>
+              <FilterIcon className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-sage" />}
+            </Button>
+          </>
+        }
+      />
 
-        {showFilters && (
-          <FilterBar filters={filters} onChange={setFilters} />
-        )}
+      <div className="mt-8 space-y-6">
+        {showFilters && <FilterBar filters={filters} onChange={setFilters} categories={categories} />}
 
-        <BudgetAlerts budgets={budgets} />
+        <BalanceHero
+          month={currentMonth}
+          income={income}
+          expense={expense}
+          balance={balance}
+          currency={currency}
+          netWorth={hasActiveFilters ? null : netWorth}
+        />
 
-        <SummaryCards income={income} expense={expense} balance={balance} currency={currency} />
+        {/* The month's headline figure comes first; what needs attention sits
+            directly under it. */}
+        <BudgetAlerts budgets={budgets} currency={currency} />
 
-        {netWorth && (
-          <div className="rounded-lg bg-gradient-to-br from-violet-50 to-violet-100 p-4 shadow dark:from-violet-950 dark:to-violet-900">
-            <p className="text-sm text-gray-600 dark:text-violet-200/70">💎 Net Worth (all time)</p>
-            <p className="text-2xl font-bold text-violet-700 dark:text-violet-300">
-              {currency} {netWorth.netWorth.toFixed(2)}
-            </p>
-          </div>
-        )}
+        {household?.inviteCode && !hasActiveFilters && <InviteCode code={household.inviteCode} />}
 
-        {household?.inviteCode && !hasActiveFilters && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 dark:bg-blue-950 dark:border-blue-900 dark:text-blue-200">
-            Partner invite code:{' '}
-            <span className="font-bold tracking-widest">{household.inviteCode}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="rise grid grid-cols-1 gap-6 lg:grid-cols-3" style={{ '--rise-delay': '90ms' }}>
           <div className="lg:col-span-1">
-            <TransactionForm
-              onAdd={addTransaction}
-              householdId={householdId}
-              currentMonth={currentMonth}
-              transactions={transactions}
-            />
-          </div>
-
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6 dark:bg-slate-800">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Transactions</h2>
-                {hasActiveFilters && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full dark:bg-blue-950 dark:text-blue-300">
-                    {transactions.length} result{transactions.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              {loading ? (
-                <p className="text-gray-500 dark:text-slate-400 text-sm">Loading...</p>
-              ) : (
-                <TransactionList
-                  transactions={transactions}
-                  onUpdate={updateTransaction}
-                  onDelete={deleteTransaction}
-                  currency={currency}
-                />
-              )}
+            <div className="lg:sticky lg:top-[5.5rem]">
+              <TransactionForm
+                onAdd={addTransaction}
+                householdId={householdId}
+                currentMonth={currentMonth}
+                currency={currency}
+                categories={categories}
+                onAddCategory={addCategory}
+                onDeleteCategory={deleteCategory}
+              />
             </div>
           </div>
+
+          <SectionCard
+            className="lg:col-span-2"
+            title="Transactions"
+            description={hasActiveFilters ? 'Filtered view' : 'Everything logged this month'}
+            action={
+              hasActiveFilters && (
+                <Badge tone="sage">
+                  {transactions.length} result{transactions.length !== 1 ? 's' : ''}
+                </Badge>
+              )
+            }
+          >
+            {loading ? (
+              <Loader label="Loading transactions" />
+            ) : (
+              <TransactionList
+                transactions={transactions}
+                onUpdate={updateTransaction}
+                onDelete={deleteTransaction}
+                currency={currency}
+                categories={categories}
+                onAddCategory={addCategory}
+                onDeleteCategory={deleteCategory}
+              />
+            )}
+          </SectionCard>
         </div>
 
         {/* Charts section — only show when no custom filters distort the view */}
         {!hasActiveFilters && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Insights</h2>
-              <Link to="/monthly-review" className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400">
-                Full report →
-              </Link>
-            </div>
-            <div className="space-y-6">
-              <IncomeExpenseChart income={income} expense={expense} currency={currency} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CategoryChart transactions={transactions} currency={currency} />
-                <TrendChart transactions={transactions} currency={currency} />
+          <section className="rise pt-4" style={{ '--rise-delay': '160ms' }}>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="eyebrow mb-1">Insights</p>
+                <h2 className="font-display text-[1.25rem] font-semibold text-ink">
+                  Where the month went
+                </h2>
               </div>
+              <Button as={Link} to="/monthly-review" variant="ghost" size="sm">
+                Full report
+                <ArrowRightIcon className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <CategoryChart transactions={transactions} currency={currency} />
+              <TrendChart transactions={transactions} currency={currency} />
+            </div>
+          </section>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }
