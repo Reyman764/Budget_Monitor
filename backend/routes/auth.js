@@ -1,11 +1,14 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const dns = require('dns');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { User } = require('../models');
 const { sendError } = require('../utils/errorHandler');
 const router = express.Router();
+
+dns.setDefaultResultOrder('ipv4first');
 
 const mailer = process.env.SMTP_HOST
   ? nodemailer.createTransport({
