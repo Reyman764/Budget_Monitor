@@ -83,6 +83,8 @@ See `backend/.env.example` and `frontend/.env.example`.
 
 ⚠️ Update `DB_PASSWORD` in `backend/.env` to match your local PostgreSQL credentials.
 
+Password reset emails require SMTP settings in the backend environment: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`. Configure these in Render before using **Forgot password?**.
+
 ## Notes on this build
 
 - Fixed a bug where adding any transaction failed with `column "HouseholdId" does not exist`. The `Transaction`, `BudgetLimit`, and `SavingsGoal` models were missing an explicit `foreignKey` on their `Household` association, so Sequelize generated a phantom column instead of using the real `householdId` column from the migration. This is fixed in `backend/models/`.

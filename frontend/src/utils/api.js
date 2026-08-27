@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,9 +26,11 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const isAuthEndpoint = error.config?.url?.includes('/auth/');
-    if ((status === 401 || status === 403) && !isAuthEndpoint && localStorage.getItem('token')) {
+    if ((status === 401 || status === 403) && !isAuthEndpoint && (localStorage.getItem('token') || sessionStorage.getItem('token'))) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       localStorage.removeItem('householdId');
       window.location.href = '/login';
     }

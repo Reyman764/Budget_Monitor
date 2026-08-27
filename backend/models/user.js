@@ -21,6 +21,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false
       },
+      resetTokenHash: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+      resetTokenExpiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
       name: {
         type: DataTypes.STRING,
         allowNull: false

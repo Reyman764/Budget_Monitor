@@ -7,10 +7,11 @@ import Callout from '../components/ui/Callout';
 import { Field, Input } from '../components/ui/Field';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(localStorage.getItem('rememberedEmail') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(Boolean(localStorage.getItem('rememberedEmail')));
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -20,7 +21,9 @@ export default function Login() {
     setError('');
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
+      if (rememberMe) localStorage.setItem('rememberedEmail', email);
+      else localStorage.removeItem('rememberedEmail');
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
@@ -73,6 +76,16 @@ export default function Login() {
             required
           />
         </Field>
+
+        <div className="flex items-center justify-between gap-3 text-[0.8125rem]">
+          <label className="flex items-center gap-2 text-ink-soft">
+            <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+            Remember me
+          </label>
+          <Link to="/forgot-password" className="font-medium text-sage underline underline-offset-2">
+            Forgot password?
+          </Link>
+        </div>
 
         <Button type="submit" variant="primary" size="lg" full disabled={loading} className="mt-2">
           {loading ? 'Signing in…' : 'Sign in'}

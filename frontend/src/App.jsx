@@ -5,6 +5,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import Loader from './components/ui/Loader';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Chart-heavy pages are code-split so an unauthenticated visitor on
 // Login/Signup never downloads recharts/react-to-print up front.
@@ -35,6 +37,8 @@ function AppRoutes() {
 
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/dashboard" />} />
+          <Route path="/forgot-password" element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" />} />
+          <Route path="/reset-password/:token" element={!user ? <ResetPassword /> : <Navigate to="/dashboard" />} />
           <Route
             path="/household-setup"
             element={user ? <HouseholdSetup /> : <Navigate to="/login" />}
