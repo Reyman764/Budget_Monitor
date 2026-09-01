@@ -136,7 +136,7 @@ export default function TransactionList({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <p className="truncate text-[0.9375rem] font-medium text-ink">
+                          <p className="break-words text-[0.9375rem] font-medium text-ink">
                             {tx.description || tx.category}
                           </p>
                           {tx.isRecurring && (
@@ -145,7 +145,7 @@ export default function TransactionList({
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-0.5 truncate text-[0.75rem] text-ink-mute">
+                        <p className="mt-0.5 break-words text-[0.75rem] text-ink-mute">
                           {tx.category}
                           {tx.User?.name && ` · ${tx.User.name}`}
                         </p>

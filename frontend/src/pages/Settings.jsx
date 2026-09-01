@@ -219,7 +219,7 @@ export default function Settings() {
           <dl className="grid grid-cols-2 gap-6 sm:grid-cols-3">
             <div>
               <dt className="eyebrow">Name</dt>
-              <dd className="mt-1.5 truncate text-[0.9375rem] font-medium text-ink">
+              <dd className="mt-1.5 break-words text-[0.9375rem] font-medium text-ink">
                 {household?.name || '—'}
               </dd>
             </div>

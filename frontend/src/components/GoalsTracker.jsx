@@ -69,7 +69,7 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <h3 className="font-display truncate text-[1.0625rem] font-semibold text-ink">
+                  <h3 className="font-display break-words text-[1.0625rem] font-semibold text-ink">
                     {goal.goalName}
                   </h3>
                   {reached && (

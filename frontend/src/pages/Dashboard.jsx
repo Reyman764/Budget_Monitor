@@ -7,7 +7,6 @@ import { useBudget } from '../hooks/useBudget';
 import AppShell from '../components/AppShell';
 import BalanceHero from '../components/BalanceHero';
 import MonthPicker from '../components/MonthPicker';
-import InviteCode from '../components/InviteCode';
 import TransactionForm from '../components/TransactionForm';
 import TransactionList from '../components/TransactionList';
 import FilterBar from '../components/FilterBar';
@@ -146,8 +145,6 @@ export default function Dashboard() {
         {/* The month's headline figure comes first; what needs attention sits
             directly under it. */}
         <BudgetAlerts budgets={budgets} currency={currency} />
-
-        {household?.inviteCode && !hasActiveFilters && <InviteCode code={household.inviteCode} />}
 
         <div className="rise grid grid-cols-1 gap-6 lg:grid-cols-3" style={{ '--rise-delay': '90ms' }}>
           <div className="lg:col-span-1">

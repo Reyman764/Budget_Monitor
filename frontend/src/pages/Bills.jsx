@@ -235,10 +235,10 @@ export default function Bills() {
                     </span>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.9375rem] font-medium text-ink">
+                      <p className="break-words text-[0.9375rem] font-medium text-ink">
                         {bill.description || bill.category}
                       </p>
-                      <p className="mt-0.5 truncate text-[0.8125rem] text-ink-mute">
+                      <p className="mt-0.5 break-words text-[0.8125rem] text-ink-mute">
                         {bill.category}
                         {bill.recurringDay ? ` · due the ${ordinal(bill.recurringDay)}` : ''}
                       </p>
