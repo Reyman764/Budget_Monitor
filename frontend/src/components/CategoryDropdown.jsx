@@ -133,7 +133,7 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
                     onClick={(e) => handleDelete(e, cat)}
                     title={`Delete "${cat}"`}
                     aria-label={`Delete category ${cat}`}
-                    className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-mute opacity-0 transition hover:bg-clay-soft hover:text-clay focus-visible:opacity-100 group-hover:opacity-100"
+                    className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-mute opacity-0 transition hover:bg-clay-soft hover:text-clay focus-visible:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>

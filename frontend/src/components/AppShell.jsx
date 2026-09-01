@@ -33,9 +33,15 @@ const pill = (isActive) =>
   }`;
 
 /**
- * The frame every signed-in page sits in: one sticky top bar, one centred
- * column. Nothing else is chrome, so the page's own content is the only thing
- * competing for attention.
+ * The frame every signed-in page sits in.
+ *
+ * Desktop (lg+): one sticky top bar carries the wordmark, the full nav, and
+ * the account controls — nothing else is chrome.
+ *
+ * Phone/tablet (<lg): the top bar shrinks to branding + account access, and
+ * navigation moves to a fixed bottom tab bar — the layout people already know
+ * from every native app, reachable with a thumb instead of a menu you have to
+ * open first.
  *
  * Pages pass the `household` they already loaded rather than the shell fetching
  * it again — there's one household request per page as a result, not two.
@@ -44,10 +50,10 @@ export default function AppShell({ household, children, className = '' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // A tap on a nav item should leave the sheet closed behind it.
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => setAccountOpen(false), [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -101,45 +107,33 @@ export default function AppShell({ household, children, className = '' }) {
               <LogOutIcon className="h-[1.15rem] w-[1.15rem]" />
             </Button>
 
+            {/* Below lg, the top nav is gone (it lives in the bottom tab bar
+                instead) — this button only opens account details + log out,
+                so it no longer needs to duplicate the nav links. */}
             <Button
               variant="ghost"
               size="sm"
               iconOnly
               className="lg:hidden"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-expanded={menuOpen}
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setAccountOpen((v) => !v)}
+              aria-expanded={accountOpen}
+              aria-label={accountOpen ? 'Close account menu' : 'Open account menu'}
             >
-              {menuOpen ? <CloseIcon /> : <MenuIcon />}
+              {accountOpen ? <CloseIcon /> : <MenuIcon />}
             </Button>
           </div>
         </div>
 
-        {menuOpen && (
-          <div className="border-t border-line bg-surface px-4 pt-3 pb-4 shadow-lift lg:hidden">
-            <nav className="grid gap-1 sm:grid-cols-2" aria-label="Main">
-              {NAV.map(({ to, label, Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.9375rem] transition-colors ${
-                      isActive
-                        ? 'bg-sage-soft font-semibold text-sage'
-                        : 'font-medium text-ink-soft hover:bg-sunken hover:text-ink'
-                    }`
-                  }
-                >
-                  <Icon className="h-[1.15rem] w-[1.15rem]" />
-                  {label}
-                </NavLink>
-              ))}
-            </nav>
-            <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-              <span className="truncate text-[0.8125rem] text-ink-mute">
+        {accountOpen && (
+          <div className="border-t border-line bg-surface px-4 py-4 shadow-lift lg:hidden">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-soft text-[0.8125rem] font-semibold text-sage">
+                {initial}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium text-ink">
                 {user?.name || user?.email}
               </span>
-              <Button variant="danger" size="sm" onClick={handleLogout}>
+              <Button variant="danger" size="sm" onClick={handleLogout} className="shrink-0">
                 <LogOutIcon className="h-4 w-4" />
                 Log out
               </Button>
@@ -148,9 +142,47 @@ export default function AppShell({ household, children, className = '' }) {
         )}
       </header>
 
-      <main className={`mx-auto max-w-6xl px-4 pt-8 pb-20 sm:px-6 sm:pt-10 ${className}`}>
+      <main
+        className={`mx-auto max-w-6xl px-4 pt-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-10 lg:pb-20 ${className}`}
+      >
         {children}
       </main>
+
+      {/* Bottom tab bar — the primary way to move between sections on a
+          phone. Fixed, so it stays reachable regardless of scroll position;
+          `main`'s bottom padding above keeps content from ever sitting
+          underneath it. */}
+      <nav
+        className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-xl lg:hidden"
+        aria-label="Main"
+      >
+        <div className="mx-auto flex max-w-6xl items-stretch justify-between px-1 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
+          {NAV.map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[0.625rem] font-medium transition-colors duration-150 ${
+                  isActive ? 'text-sage' : 'text-ink-mute hover:text-ink-soft'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-150 ${
+                      isActive ? 'bg-sage-soft' : ''
+                    }`}
+                  >
+                    <Icon className="h-[1.15rem] w-[1.15rem]" />
+                  </span>
+                  <span className="leading-none">{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

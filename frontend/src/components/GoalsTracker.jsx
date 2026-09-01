@@ -134,8 +134,8 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
             </div>
 
             {!reached && (
-              <div className="mt-4 flex gap-2 border-t border-line pt-4">
-                <div className="relative w-40">
+              <div className="mt-4 flex flex-col gap-2 border-t border-line pt-4 sm:flex-row">
+                <div className="relative w-full sm:w-40">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
                     {currency}
                   </span>
@@ -154,6 +154,7 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
                   variant="soft"
                   onClick={() => handleAddFunds(goal)}
                   disabled={savingId === goal.id || !drafts[goal.id]}
+                  className="w-full sm:w-auto"
                 >
                   <PlusIcon className="h-4 w-4" />
                   {savingId === goal.id ? 'Saving…' : 'Add to goal'}

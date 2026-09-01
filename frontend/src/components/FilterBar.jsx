@@ -105,11 +105,11 @@ export default function FilterBar({ filters, onChange, categories = DEFAULT_CATE
       </div>
 
       {hasActiveFilters && (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
+        <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[0.8125rem] text-ink-mute">
             A date range here overrides the month above.
           </p>
-          <Button variant="danger" size="sm" onClick={reset}>
+          <Button variant="danger" size="sm" onClick={reset} className="w-full sm:w-auto sm:shrink-0">
             <CloseIcon className="h-4 w-4" />
             Clear filters
           </Button>

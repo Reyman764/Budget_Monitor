@@ -162,12 +162,12 @@ export default function TransactionList({
                         })}
                       </p>
 
-                      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-100">
+                      <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-100">
                         <Button
                           variant="ghost"
                           size="sm"
                           iconOnly
-                          className="h-8 w-8"
+                          className="h-9 w-9 sm:h-8 sm:w-8"
                           onClick={() => openEdit(tx)}
                           aria-label={`Edit ${tx.description || tx.category}`}
                           title="Edit"
@@ -178,7 +178,7 @@ export default function TransactionList({
                           variant="danger"
                           size="sm"
                           iconOnly
-                          className="h-8 w-8"
+                          className="h-9 w-9 sm:h-8 sm:w-8"
                           onClick={() => handleDelete(tx.id)}
                           aria-label={`Delete ${tx.description || tx.category}`}
                           title="Delete"

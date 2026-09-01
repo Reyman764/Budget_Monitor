@@ -171,8 +171,8 @@ export default function Settings() {
                     )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="relative w-40">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center">
+                    <div className="relative w-full sm:w-40">
                       <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[0.8125rem] font-medium text-ink-mute">
                         {currency}
                       </span>
@@ -191,6 +191,7 @@ export default function Settings() {
                       variant={savedCategory === category ? 'soft' : 'secondary'}
                       onClick={() => handleSave(category)}
                       disabled={savingCategory === category}
+                      className="w-full sm:w-auto"
                     >
                       {savingCategory === category ? (
                         'Saving…'
