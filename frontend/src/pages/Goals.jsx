@@ -15,12 +15,14 @@ import { Card } from '../components/ui/Card';
 import { Field, Input } from '../components/ui/Field';
 import { PlusIcon } from '../components/icons';
 import { money } from '../utils/format';
+import { useToast } from '../context/ToastContext';
 
 export default function Goals() {
   const { household, loading: householdLoading } = useHousehold();
   const navigate = useNavigate();
   const householdId = household?.id || null;
   const currency = household?.currency || 'NPR';
+  const toast = useToast();
 
   const { goals, loading, addGoal, updateGoal, deleteGoal } = useGoals(householdId);
 
@@ -45,6 +47,7 @@ export default function Goals() {
       });
       setShowAdd(false);
       setAddForm({ goalName: '', targetAmount: '', deadline: '' });
+      toast.success('Goal added');
     } catch (err) {
       setAddError(err.response?.data?.error || 'Failed to add goal');
     } finally {
@@ -56,7 +59,12 @@ export default function Goals() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Remove this savings goal?')) return;
-    await deleteGoal(id);
+    try {
+      await deleteGoal(id);
+      toast.success('Goal removed');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to remove that goal');
+    }
   };
 
   const totalSaved = goals.reduce((sum, g) => sum + parseFloat(g.currentAmount), 0);
@@ -149,6 +157,7 @@ export default function Goals() {
                 <Input
                   id="goal-target"
                   type="number"
+                  inputMode="decimal"
                   value={addForm.targetAmount}
                   onChange={(e) => setAddForm({ ...addForm, targetAmount: e.target.value })}
                   placeholder="0.00"

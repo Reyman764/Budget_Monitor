@@ -258,6 +258,79 @@ export const HouseholdIcon = (p) => (
   </Icon>
 );
 
+/* ----------------------------------------------------------------- category */
+/* One shape per common category so a list can be scanned by silhouette, not
+   just read word by word. Colour still carries income/expense or paid/unpaid
+   — these stay monochrome and inherit `currentColor` like every other icon. */
+
+export const FoodIcon = (p) => (
+  <Icon {...p}>
+    <path d="M5.5 4.5h10v9a5 5 0 0 1-5 5 5 5 0 0 1-5-5v-9Z" />
+    <path d="M15.5 7.5h1.5a2.5 2.5 0 0 1 0 5h-1.5" />
+  </Icon>
+);
+
+export const TransportIcon = (p) => (
+  <Icon {...p}>
+    <path d="M4.75 15.25 6.1 9.6a2 2 0 0 1 1.95-1.6h7.9a2 2 0 0 1 1.95 1.6l1.35 5.65" />
+    <rect x="3.5" y="13.5" width="17" height="5.5" rx="2" />
+    <circle cx="7.5" cy="19" r="1.5" />
+    <circle cx="16.5" cy="19" r="1.5" />
+  </Icon>
+);
+
+export const ShoppingIcon = (p) => (
+  <Icon {...p}>
+    <path d="M6.5 8.5h11l-1 11a1.75 1.75 0 0 1-1.75 1.6H9.25a1.75 1.75 0 0 1-1.75-1.6l-1-11Z" />
+    <path d="M9 8.5V6.5a3 3 0 0 1 6 0v2" />
+  </Icon>
+);
+
+export const HealthIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 8v8M8 12h8" />
+  </Icon>
+);
+
+export const EntertainmentIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M10 8.3v7.4l6.2-3.7L10 8.3Z" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+export const WalletIcon = (p) => (
+  <Icon {...p}>
+    <rect x="3" y="6.5" width="18" height="12" rx="2.2" />
+    <path d="M3 10.75h18" />
+    <circle cx="17" cy="14.5" r="1.25" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+export const BriefcaseIcon = (p) => (
+  <Icon {...p}>
+    <rect x="3.5" y="7.5" width="17" height="12" rx="2" />
+    <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" />
+    <path d="M3.5 12.5h17" />
+  </Icon>
+);
+
+export const GiftIcon = (p) => (
+  <Icon {...p}>
+    <rect x="4" y="9.5" width="16" height="11" rx="1.5" />
+    <path d="M4 14h16M12 9.5v11" />
+    <path d="M9 9.5c-1.8 0-3-1-3-2.5S7.2 4.5 9 6c.9.75 1.6 1.9 2 3.5M15 9.5c1.8 0 3-1 3-2.5S16.8 4.5 15 6c-.9.75-1.6 1.9-2 3.5" />
+  </Icon>
+);
+
+export const TagIcon = (p) => (
+  <Icon {...p}>
+    <path d="M11.5 3.5H6.25A2.75 2.75 0 0 0 3.5 6.25V11.5a2.75 2.75 0 0 0 .8 1.94l8.26 8.26a2.5 2.5 0 0 0 3.54 0l5.4-5.4a2.5 2.5 0 0 0 0-3.54L13.44 4.3a2.75 2.75 0 0 0-1.94-.8Z" />
+    <circle cx="8" cy="8" r="1.35" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
 /* --------------------------------------------------------------------- theme */
 
 export const SunIcon = (p) => (

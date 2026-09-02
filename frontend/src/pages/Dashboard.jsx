@@ -18,8 +18,9 @@ import Badge from '../components/ui/Badge';
 import Loader from '../components/ui/Loader';
 import PageHeader from '../components/ui/PageHeader';
 import { SectionCard } from '../components/ui/Card';
-import { ArrowRightIcon, FilterIcon } from '../components/icons';
+import { ArrowRightIcon, FilterIcon, PlusIcon } from '../components/icons';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
+import { useToast } from '../context/ToastContext';
 
 const DEFAULT_FILTERS = { type: '', category: '', startDate: '', endDate: '', search: '' };
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { household, loading: householdLoading, updateCategories } = useHousehold();
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Month picker for the charts/summary (independent of the filter bar)
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -54,7 +56,7 @@ export default function Dashboard() {
   const deleteCategory = async (type, name) => {
     const current = categories[type] || [];
     if (current.length <= 1) {
-      alert('You need at least one category in this list.');
+      toast.error('You need at least one category in this list.');
       return;
     }
     await updateCategories({ ...categories, [type]: current.filter((c) => c !== name) });
@@ -148,7 +150,7 @@ export default function Dashboard() {
 
         <div className="rise grid grid-cols-1 gap-6 lg:grid-cols-3" style={{ '--rise-delay': '90ms' }}>
           <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-[5.5rem]">
+            <div id="add-transaction-card" className="scroll-mt-24 lg:sticky lg:top-[5.5rem]">
               <TransactionForm
                 onAdd={addTransaction}
                 householdId={householdId}
@@ -212,6 +214,25 @@ export default function Dashboard() {
           </section>
         )}
       </div>
+
+      {/* Primary mobile action — the form above is the first thing in the
+          column, but that's still a scroll away once the page fills up
+          with transactions. This jumps straight to it and focuses the
+          amount field, so "add a transaction" never needs a hunt. */}
+      <button
+        type="button"
+        onClick={() => {
+          document.getElementById('add-transaction-card')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          setTimeout(() => document.getElementById('tx-amount')?.focus(), 380);
+        }}
+        aria-label="Add a transaction"
+        className="no-print fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-sage text-on-sage shadow-pop transition-transform duration-150 active:scale-95 lg:hidden"
+      >
+        <PlusIcon className="h-6 w-6" />
+      </button>
     </AppShell>
   );
 }

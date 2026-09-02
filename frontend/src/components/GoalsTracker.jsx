@@ -8,6 +8,7 @@ import { Card } from './ui/Card';
 import { Input } from './ui/Field';
 import { CalendarIcon, CheckIcon, GoalsIcon, PlusIcon, TrashIcon } from './icons';
 import { dateLabel, money } from '../utils/format';
+import { useToast } from '../context/ToastContext';
 
 const daysRemaining = (deadline) => {
   if (!deadline) return null;
@@ -22,6 +23,7 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
   const [drafts, setDrafts] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
+  const toast = useToast();
 
   const setDraft = (id, value) => setDrafts((prev) => ({ ...prev, [id]: value }));
 
@@ -31,8 +33,18 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
     setSavingId(goal.id);
     setError('');
     try {
-      await onAddFunds(goal.id, parseFloat(goal.currentAmount) + amount);
+      const before = parseFloat(goal.currentAmount);
+      const target = parseFloat(goal.targetAmount);
+      const after = before + amount;
+      await onAddFunds(goal.id, after);
       setDraft(goal.id, '');
+      // Only the crossing itself is worth celebrating — not every top-up
+      // after a goal is already funded.
+      if (before < target && after >= target) {
+        toast.success(`Goal reached: ${goal.goalName}`);
+      } else {
+        toast.success('Added to goal');
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update that goal. Try again.');
     } finally {
@@ -73,7 +85,7 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
                     {goal.goalName}
                   </h3>
                   {reached && (
-                    <Badge tone="moss">
+                    <Badge tone="moss" className="pop">
                       <CheckIcon className="h-3.5 w-3.5" />
                       Reached
                     </Badge>
@@ -141,6 +153,7 @@ export default function GoalsTracker({ goals, currency = 'NPR', onAddFunds, onDe
                   </span>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     value={drafts[goal.id] || ''}
                     onChange={(e) => setDraft(goal.id, e.target.value)}
                     placeholder="0.00"

@@ -16,15 +16,15 @@ import { Card, SectionCard } from '../components/ui/Card';
 import { Field, Input, Select } from '../components/ui/Field';
 import {
   BillsIcon,
-  CheckCircleIcon,
   CheckIcon,
   PlusIcon,
-  RecurringIcon,
   TrashIcon
 } from '../components/icons';
+import { getCategoryIcon } from '../utils/categoryIcons';
 import { money, monthLabel, ordinal } from '../utils/format';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
 import api from '../utils/api';
+import { useToast } from '../context/ToastContext';
 
 export default function Bills() {
   const { household, loading: householdLoading } = useHousehold();
@@ -34,6 +34,7 @@ export default function Bills() {
   const expenseCategories = household?.categories?.expense || DEFAULT_CATEGORIES.expense;
 
   const { transactions, loading, fetchTransactions, payBill, deleteTransaction } = useTransactions(householdId);
+  const toast = useToast();
 
   // All recurring bill templates
   const [bills, setBills] = useState([]);
@@ -97,6 +98,7 @@ export default function Bills() {
         params: { month: currentMonth, type: 'expense' }
       });
       setPaidThisMonth(data.transactions || []);
+      toast.success(`Marked "${bill.description || bill.category}" as paid`);
     } catch (err) {
       setPayError(err.response?.data?.error || 'Failed to log that payment. Try again.');
     } finally {
@@ -106,7 +108,12 @@ export default function Bills() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Remove this recurring bill?')) return;
-    await deleteTransaction(id);
+    try {
+      await deleteTransaction(id);
+      toast.success('Bill removed');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to remove that bill');
+    }
   };
 
   const handleAddBill = async (e) => {
@@ -126,6 +133,7 @@ export default function Bills() {
       setShowAdd(false);
       setAddForm({ amount: '', category: 'Bills', description: '', recurringDay: '' });
       loadBills();
+      toast.success('Bill added');
     } catch (err) {
       setAddError(err.response?.data?.error || 'Failed to add bill');
     } finally {
@@ -217,6 +225,7 @@ export default function Bills() {
             <ul>
               {ordered.map((bill) => {
                 const paid = isPaidThisMonth(bill);
+                const CategoryIcon = getCategoryIcon(bill.category);
                 return (
                   <li
                     key={bill.id}
@@ -227,11 +236,7 @@ export default function Bills() {
                         paid ? 'bg-moss-soft text-moss' : 'bg-sunken text-ink-mute'
                       }`}
                     >
-                      {paid ? (
-                        <CheckCircleIcon className="h-[1.15rem] w-[1.15rem]" />
-                      ) : (
-                        <RecurringIcon className="h-[1.15rem] w-[1.15rem]" />
-                      )}
+                      <CategoryIcon className="h-[1.15rem] w-[1.15rem]" />
                     </span>
 
                     <div className="min-w-0 flex-1">
@@ -250,7 +255,7 @@ export default function Bills() {
 
                     <div className="flex shrink-0 items-center gap-2.5">
                       {paid ? (
-                        <Badge tone="moss">
+                        <Badge tone="moss" className="pop">
                           <CheckIcon className="h-3.5 w-3.5" />
                           Paid
                         </Badge>
@@ -313,6 +318,7 @@ export default function Bills() {
                   <Input
                     id="bill-amount"
                     type="number"
+                    inputMode="decimal"
                     value={addForm.amount}
                     onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
                     placeholder="0.00"
@@ -328,6 +334,7 @@ export default function Bills() {
                 <Input
                   id="bill-day"
                   type="number"
+                  inputMode="numeric"
                   value={addForm.recurringDay}
                   onChange={(e) => setAddForm({ ...addForm, recurringDay: e.target.value })}
                   placeholder="15"

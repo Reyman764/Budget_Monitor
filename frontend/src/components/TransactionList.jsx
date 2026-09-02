@@ -5,9 +5,11 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import EmptyState from './ui/EmptyState';
 import { Field, Input, Select } from './ui/Field';
-import { EditIcon, ExpenseIcon, IncomeIcon, RecurringIcon, ReviewIcon, TrashIcon } from './icons';
+import { EditIcon, RecurringIcon, ReviewIcon, TrashIcon } from './icons';
+import { getCategoryIcon } from '../utils/categoryIcons';
 import { dateLabel, money, ordinal } from '../utils/format';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
+import { useToast } from '../context/ToastContext';
 
 const dayKey = (date) => new Date(date).toISOString().slice(0, 10);
 
@@ -23,6 +25,7 @@ export default function TransactionList({
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   // Grouping by day gives the list a spine: you read a date once, then the
   // entries under it, instead of re-reading the same date on every row.
@@ -70,8 +73,9 @@ export default function TransactionList({
           : null
       });
       setEditingTransaction(null);
+      toast.success('Transaction updated');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update');
+      toast.error(err.response?.data?.error || 'Failed to update');
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,12 @@ export default function TransactionList({
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this transaction?')) return;
-    try { await onDelete(id); } catch (err) { alert(err.response?.data?.error || 'Failed to delete'); }
+    try {
+      await onDelete(id);
+      toast.success('Transaction deleted');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete');
+    }
   };
 
   if (transactions.length === 0) {
@@ -117,6 +126,8 @@ export default function TransactionList({
                   const isIncome = tx.type === 'income';
                   const amount = parseFloat(tx.amount);
 
+                  const CategoryIcon = getCategoryIcon(tx.category);
+
                   return (
                     <li
                       key={tx.id}
@@ -127,11 +138,7 @@ export default function TransactionList({
                           isIncome ? 'bg-moss-soft text-moss' : 'bg-clay-soft text-clay'
                         }`}
                       >
-                        {isIncome ? (
-                          <IncomeIcon className="h-[1.15rem] w-[1.15rem]" />
-                        ) : (
-                          <ExpenseIcon className="h-[1.15rem] w-[1.15rem]" />
-                        )}
+                        <CategoryIcon className="h-[1.15rem] w-[1.15rem]" />
                       </span>
 
                       <div className="min-w-0 flex-1">
@@ -153,7 +160,7 @@ export default function TransactionList({
 
                       <p
                         className={`tnum shrink-0 text-[0.9375rem] font-semibold ${
-                          isIncome ? 'text-moss' : 'text-ink'
+                          isIncome ? 'text-moss' : 'text-clay'
                         }`}
                       >
                         {money(isIncome ? amount : -amount, currency, {
@@ -213,6 +220,7 @@ export default function TransactionList({
                 <Input
                   id="edit-amount"
                   type="number"
+                  inputMode="decimal"
                   name="amount"
                   value={formData.amount}
                   onChange={handleChange}
@@ -274,6 +282,7 @@ export default function TransactionList({
                   <Input
                     type="number"
                     name="recurringDay"
+                    inputMode="numeric"
                     value={formData.recurringDay}
                     onChange={handleChange}
                     placeholder="Due day (1–31)"

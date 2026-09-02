@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import Button from './ui/Button';
 import { fieldHeight, fieldShell, labelClass } from './ui/Field';
 import { CheckIcon, ChevronDownIcon, PlusIcon, TrashIcon } from './icons';
+import { getCategoryIcon } from '../utils/categoryIcons';
+import { useToast } from '../context/ToastContext';
 
 /**
  * A fully custom dropdown (not a native <select>) so it can support adding
@@ -20,6 +22,7 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const containerRef = useRef(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +69,7 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
   const handleDelete = async (e, cat) => {
     e.stopPropagation();
     if (categories.length <= 1) {
-      alert('You need at least one category in this list.');
+      toast.error('You need at least one category in this list.');
       return;
     }
     if (!window.confirm(`Delete category "${cat}"?`)) return;
@@ -94,8 +97,15 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
         aria-expanded={open}
         className={`${fieldShell} ${fieldHeight} flex items-center justify-between gap-2 text-left`}
       >
-        <span className={`truncate ${value ? '' : 'text-ink-mute'}`}>
-          {value || 'Choose a category'}
+        <span className="flex min-w-0 items-center gap-2.5">
+          {value &&
+            (() => {
+              const TriggerIcon = getCategoryIcon(value);
+              return <TriggerIcon className="h-4 w-4 shrink-0 text-ink-mute" />;
+            })()}
+          <span className={`truncate ${value ? '' : 'text-ink-mute'}`}>
+            {value || 'Choose a category'}
+          </span>
         </span>
         <ChevronDownIcon
           className={`h-4 w-4 shrink-0 text-ink-mute transition-transform duration-200 ${
@@ -109,6 +119,7 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
           <ul className="max-h-60 overflow-y-auto py-1" role="listbox">
             {categories.map((cat) => {
               const selected = cat === value;
+              const CatIcon = getCategoryIcon(cat);
               return (
                 <li
                   key={cat}
@@ -123,6 +134,9 @@ export default function CategoryDropdown({ value, onChange, categories, onAddCat
                   >
                     <CheckIcon
                       className={`h-4 w-4 shrink-0 ${selected ? 'text-sage' : 'invisible'}`}
+                    />
+                    <CatIcon
+                      className={`h-4 w-4 shrink-0 ${selected ? 'text-sage' : 'text-ink-mute'}`}
                     />
                     <span className={`truncate ${selected ? 'font-semibold text-sage' : 'text-ink'}`}>
                       {cat}

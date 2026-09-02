@@ -6,6 +6,7 @@ import { Card } from './ui/Card';
 import { Field, Input } from './ui/Field';
 import { ExpenseIcon, IncomeIcon, PlusIcon, RecurringIcon } from './icons';
 import { DEFAULT_CATEGORIES } from '../utils/categories';
+import { useToast } from '../context/ToastContext';
 
 // Pick a sensible default date for the transaction being added.
 // If the dashboard is showing the real current month, default to today.
@@ -52,6 +53,7 @@ export default function TransactionForm({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const toast = useToast();
 
   // Keep the date field in sync with whichever month is being viewed,
   // as long as the user hasn't already started filling out the form.
@@ -116,6 +118,7 @@ export default function TransactionForm({
         isRecurring: false,
         recurringDay: ''
       });
+      toast.success(formData.type === 'income' ? 'Income added' : 'Expense added');
     } catch (err) {
       setError(err.response?.data?.error || 'Error adding transaction');
     } finally {
@@ -172,6 +175,7 @@ export default function TransactionForm({
             <Input
               id="tx-amount"
               type="number"
+              inputMode="decimal"
               name="amount"
               value={formData.amount}
               onChange={handleChange}
@@ -236,6 +240,7 @@ export default function TransactionForm({
                 <Input
                   id="tx-recurring-day"
                   type="number"
+                  inputMode="numeric"
                   name="recurringDay"
                   value={formData.recurringDay}
                   onChange={handleChange}

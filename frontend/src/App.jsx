@@ -2,6 +2,8 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import ToastStack from './components/ToastStack';
 import Loader from './components/ui/Loader';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -63,7 +65,10 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+          <ToastStack />
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );

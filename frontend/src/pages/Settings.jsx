@@ -178,6 +178,7 @@ export default function Settings() {
                       </span>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         value={drafts[category] ?? ''}
                         onChange={(e) => setDrafts((prev) => ({ ...prev, [category]: e.target.value }))}
                         placeholder="0"
