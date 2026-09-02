@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Callout from '../components/ui/Callout';
 import Loader from '../components/ui/Loader';
+import { SkeletonRows } from '../components/ui/Skeleton';
 import Meter, { meterTone } from '../components/ui/Meter';
 import PageHeader from '../components/ui/PageHeader';
 import Stat from '../components/ui/Stat';
@@ -132,7 +133,7 @@ export default function Settings() {
           bodyClassName="divide-y divide-line"
         >
           {loading && budgets.length === 0 ? (
-            <Loader label="Loading budgets" />
+            <SkeletonRows count={3} label="Loading budgets" />
           ) : (
             expenseCategories.map((category) => {
               const existing = budgetFor(category);

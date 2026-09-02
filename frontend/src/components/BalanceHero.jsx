@@ -32,8 +32,14 @@ export default function BalanceHero({ month, income, expense, balance, currency,
   const over = balance < 0;
 
   return (
-    <section className="card rise overflow-hidden rounded-hero" aria-label="This month at a glance">
-      <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1.3fr_1fr] lg:gap-12">
+    <section className="card rise relative overflow-hidden rounded-hero" aria-label="This month at a glance">
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute -top-20 -left-16 h-64 w-64 rounded-full blur-3xl ${
+          over ? 'bg-clay/10' : 'bg-sage/12'
+        }`}
+      />
+      <div className="relative z-10 grid gap-8 p-6 sm:p-9 lg:grid-cols-[1.3fr_1fr] lg:gap-12">
         <div>
           <p className="eyebrow">{monthLabel(month)}</p>
 

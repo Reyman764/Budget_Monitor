@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Callout from '../components/ui/Callout';
 import EmptyState from '../components/ui/EmptyState';
 import Loader from '../components/ui/Loader';
+import { SkeletonRows } from '../components/ui/Skeleton';
 import Meter from '../components/ui/Meter';
 import PageHeader from '../components/ui/PageHeader';
 import Stat from '../components/ui/Stat';
@@ -206,7 +207,7 @@ export default function Bills() {
           bodyClassName="-mx-2 sm:-mx-3"
         >
           {loading ? (
-            <Loader label="Loading bills" />
+            <SkeletonRows count={4} label="Loading bills" />
           ) : ordered.length === 0 ? (
             <EmptyState
               icon={<BillsIcon className="h-5 w-5" />}

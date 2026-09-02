@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ChartCard from './ChartCard';
-import Loader from './ui/Loader';
+import { SkeletonChart } from './ui/Skeleton';
 import { useBudget } from '../hooks/useBudget';
 import { MoneyTooltip, useChartTheme } from '../utils/chartTheme';
 import { monthLabel } from '../utils/format';
@@ -27,7 +27,7 @@ export default function YearlyTrends({ householdId, currency = 'NPR' }) {
   if (loading && data.length === 0) {
     return (
       <ChartCard title="The last twelve months" description="Income, expenses and what was left">
-        <Loader label="Loading a year of history" />
+        <SkeletonChart label="Loading a year of history" />
       </ChartCard>
     );
   }

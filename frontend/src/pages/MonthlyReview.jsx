@@ -17,6 +17,7 @@ import MonthComparison from '../components/MonthComparison';
 import Button from '../components/ui/Button';
 import Callout from '../components/ui/Callout';
 import Loader from '../components/ui/Loader';
+import { SkeletonBar, SkeletonChart, SkeletonRows } from '../components/ui/Skeleton';
 import PageHeader from '../components/ui/PageHeader';
 import { PrintIcon, ShareIcon } from '../components/icons';
 import { dateLabel } from '../utils/format';
@@ -128,7 +129,18 @@ export default function MonthlyReview() {
         )}
 
         {loading || !report ? (
-          <Loader label="Building the report" />
+          <div role="status" aria-label="Building the report" className="card space-y-6 p-6 sm:p-8">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-2">
+                  <SkeletonBar className="h-3 w-2/3" />
+                  <SkeletonBar className="h-6 w-4/5" />
+                </div>
+              ))}
+            </div>
+            <SkeletonChart />
+            <SkeletonRows count={3} />
+          </div>
         ) : (
           <div ref={printRef}>
             <ReportSheet

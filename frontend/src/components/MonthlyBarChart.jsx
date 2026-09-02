@@ -11,7 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import ChartCard from './ChartCard';
-import Loader from './ui/Loader';
+import { SkeletonChart } from './ui/Skeleton';
 import { useBudget } from '../hooks/useBudget';
 import { MoneyTooltip, useChartTheme } from '../utils/chartTheme';
 import { monthLabel } from '../utils/format';
@@ -43,7 +43,7 @@ export default function MonthlyBarChart({ householdId, currency = 'NPR' }) {
   if (loading && data.length === 0) {
     return (
       <ChartCard title="Month by month" description="Every month you've recorded">
-        <Loader label="Loading your history" />
+        <SkeletonChart label="Loading your history" />
       </ChartCard>
     );
   }

@@ -8,6 +8,7 @@ import GoalsTracker from '../components/GoalsTracker';
 import Button from '../components/ui/Button';
 import Callout from '../components/ui/Callout';
 import Loader from '../components/ui/Loader';
+import { SkeletonCards } from '../components/ui/Skeleton';
 import Meter from '../components/ui/Meter';
 import PageHeader from '../components/ui/PageHeader';
 import Stat from '../components/ui/Stat';
@@ -118,7 +119,7 @@ export default function Goals() {
         )}
 
         {loading ? (
-          <Loader label="Loading goals" />
+          <SkeletonCards count={2} label="Loading goals" />
         ) : (
           <GoalsTracker
             goals={goals}

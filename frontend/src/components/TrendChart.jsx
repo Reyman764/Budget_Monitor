@@ -82,7 +82,7 @@ export default function TrendChart({ transactions, currency = 'NPR' }) {
             stroke={theme.palette.expense}
             strokeWidth={2}
             fill="url(#trend-fill)"
-            activeDot={{ r: 4, strokeWidth: 2, stroke: theme.palette.surface }}
+            activeDot={{ r: 5.5, strokeWidth: 2, stroke: theme.palette.surface }}
             dot={false}
           />
         </AreaChart>

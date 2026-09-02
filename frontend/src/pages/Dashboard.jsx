@@ -16,6 +16,7 @@ import BudgetAlerts from '../components/BudgetAlerts';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loader from '../components/ui/Loader';
+import { SkeletonRows } from '../components/ui/Skeleton';
 import PageHeader from '../components/ui/PageHeader';
 import { SectionCard } from '../components/ui/Card';
 import { ArrowRightIcon, FilterIcon, PlusIcon } from '../components/icons';
@@ -176,7 +177,7 @@ export default function Dashboard() {
             }
           >
             {loading ? (
-              <Loader label="Loading transactions" />
+              <SkeletonRows count={5} label="Loading transactions" />
             ) : (
               <TransactionList
                 transactions={transactions}
